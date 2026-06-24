@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #1a1f2e;
+  --card: #252b3b;
+  --nav: #1e2433;
+  --green: #4ade80;
+}
+
+html, body {
+  background-color: var(--bg);
+  color: white;
+  font-family: 'Nunito', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1f2e; }
+::-webkit-scrollbar-thumb { background: #3b4260; border-radius: 3px; }
+
+.font-nunito { font-family: 'Nunito', sans-serif; }
+
+@layer utilities {
+  .text-muted { color: #94a3b8; }
+  .text-disabled { color: #64748b; }
+}
+
+@layer components {
+  .field {
+    @apply w-full bg-[#252b3b] border border-white/10 focus:border-[#4ade80] rounded-xl px-3 py-2.5 text-white font-nunito text-sm outline-none transition-colors;
+  }
+  .field-label {
+    @apply block text-slate-500 font-nunito text-xs uppercase tracking-wider mb-1;
+  }
+}
