@@ -1,10 +1,14 @@
-'use client'
-import { useEffect, useState } from 'react'
+﻿'use client'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lock, CheckCircle2, PlayCircle, BookOpen, Sparkles } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { Subject } from '@/lib/api'
+import type { Subject, LearningPath as PathData } from '@/lib/api'
+import { LearningPath } from '@/components/lesson/LearningPath'
+import { CourseAdventureMap } from '@/components/course/CourseAdventureMap'
+import { ScallopRibbon } from '@/components/home/ScallopRibbon'
 import { useAppStore } from '@/store/useAppStore'
+import { useRefetchOnFocus } from '@/hooks/useRefetchOnFocus'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Spinner } from '@/components/ui/Spinner'
 import { SubjectIcon, subjectColors } from '@/components/icons/SubjectIcon'
@@ -14,7 +18,7 @@ import type { LearningProfile } from '@/types/child'
 
 type LessonStatus = 'locked' | 'unlocked' | 'in_progress' | 'completed'
 
-// ── Profile-aware difficulty fit ──────────────────────────────────────────────
+// â”€â”€ Profile-aware difficulty fit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Returns true when a lesson's difficulty matches the child's current level
 // for that subject area.
 function isFitForProfile(lesson: Lesson, subjectSlug: string, lp: LearningProfile): boolean {
@@ -22,14 +26,14 @@ function isFitForProfile(lesson: Lesson, subjectSlug: string, lp: LearningProfil
   if (subjectSlug === 'math') {
     if (lp.math === 'none')       return d === 'easy'
     if (lp.math === 'counting')   return d === 'easy' || d === 'medium'
-    return true // arithmetic → all
+    return true // arithmetic â†’ all
   }
   if (subjectSlug === 'english') {
     if (lp.reading === 'none')   return d === 'easy'
     if (lp.reading === 'basic')  return d === 'easy' || d === 'medium'
-    return true // fluent → all
+    return true // fluent â†’ all
   }
-  // science / social-studies — no profile field, show all
+  // science / social-studies â€” no profile field, show all
   return true
 }
 
@@ -93,8 +97,8 @@ function LessonNode({
           className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 ${
             done     ? 'bg-[#4ade80] shadow-lg shadow-[#4ade80]/30' :
             active   ? 'bg-blue-500 shadow-lg shadow-blue-500/30 animate-pulse' :
-            unlocked ? 'bg-[#252b3b] border-2 border-[#4ade80] hover:bg-[#4ade80]/20 hover:scale-110' :
-                       'bg-[#1a1f2e] border border-white/10 opacity-40 cursor-not-allowed'
+            unlocked ? 'bg-emerald-50 border-2 border-emerald-400 border-b-4 border-emerald-600 hover:scale-105 shadow-sm' :
+                       'bg-slate-100 border-2 border-slate-200 opacity-60 cursor-not-allowed'
           }`}
         >
           {done    ? <CheckCircle2 size={20} className="text-[#0f1117]" /> :
@@ -114,8 +118,8 @@ function LessonNode({
         className={`flex-1 mb-8 text-left rounded-2xl border p-4 transition-all group ${
           done     ? 'bg-[#4ade80]/5 border-[#4ade80]/30 hover:border-[#4ade80]/60' :
           active   ? 'bg-blue-500/5 border-blue-500/40 hover:border-blue-500/70' :
-          unlocked ? 'bg-[#1a1f2e] border-white/10 hover:border-[#4ade80]/40 hover:bg-[#4ade80]/5' :
-                     'bg-[#1a1f2e]/50 border-white/5 opacity-50 cursor-not-allowed'
+          unlocked ? 'bg-white border-2 border-slate-200 hover:border-emerald-400 border-b-4 border-b-slate-300 shadow-sm' :
+                     'bg-slate-50 border-2 border-slate-200 border-b-4 border-slate-300 opacity-60 cursor-not-allowed'
         }`}
       >
         <div className="flex items-start justify-between gap-2">
@@ -145,11 +149,11 @@ function LessonNode({
         </div>
         {(active || unlocked) && (
           <div className={`mt-3 text-xs font-nunito font-bold flex items-center gap-1 ${active ? 'text-blue-400' : 'text-[#4ade80] group-hover:gap-2 transition-all'}`}>
-            {active ? '↩ Continue' : '▶ Start lesson'}
+            {active ? 'â†© Continue' : 'â–¶ Start lesson'}
           </div>
         )}
         {done && (
-          <div className="mt-3 text-xs font-nunito text-[#4ade80] font-bold">✓ Completed</div>
+          <div className="mt-3 text-xs font-nunito text-[#4ade80] font-bold">âœ“ Completed</div>
         )}
       </button>
     </div>
@@ -164,22 +168,29 @@ export default function LessonsPage() {
   const [progress, setProgress] = useState<LessonProgress[]>([])
   const [selected, setSelected] = useState<number | null>(null)
   const [loading,  setLoading]  = useState(true)
+  const [path,     setPath]     = useState<PathData | null>(null)
+  const [view,     setView]     = useState<'course' | 'path' | 'all'>('course')
 
   const lp = child?.learning_profile
 
-  useEffect(() => {
+  const load = useCallback(() => {
     const childId = child?.id ? Number(child.id) : null
     Promise.all([
       api.subjects.list(),
       api.lessons.list(),
       childId ? api.progress.list(childId) : Promise.resolve([]),
-    ]).then(([subs, less, prog]) => {
+      childId ? api.path.get(childId).catch(() => null) : Promise.resolve(null),
+    ]).then(([subs, less, prog, pathData]) => {
+      setPath(pathData && pathData.subjects.length ? pathData : null)
       setSubjects(subs)
       setLessons(less as unknown as Lesson[])
       setProgress(prog as LessonProgress[])
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [child?.id])
+
+  useEffect(() => { load() }, [load])
+  useRefetchOnFocus(load)
 
   const progressMap = new Map<number, LessonProgress>(
     progress.map(p => [Number(p.lesson_id), p])
@@ -197,29 +208,91 @@ export default function LessonsPage() {
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size={40} /></div>
 
+  // ── Full-Bleed Adventure World (No outer container!) ─────────────
+  if (view === 'course') {
+    return (
+      <CourseAdventureMap
+        lessons={lessons}
+        progressMap={progressMap}
+        onSelectLesson={id => router.push(`/lessons/${id}`)}
+        view={view}
+        onViewChange={setView}
+        hasPath={Boolean(path)}
+      />
+    )
+  }
+
   return (
-    <PageWrapper>
-      {/* Profile banner */}
+    <div className="w-full flex flex-col">
+      {/* ── Top Hero Header for Path / All views ───────────────────── */}
+      <section className="bg-[#201c4d] text-white pt-8 pb-10 px-4 sm:px-6 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 bg-[#171439]/90 border border-white/15 rounded-full px-4 py-1.5 text-xs font-black text-purple-200 shadow-sm">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] animate-pulse" />
+              <span>Learning Explorer</span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+              Your Course <span className="text-[#facc15]">Journey</span> 🗺️
+            </h1>
+            <p className="text-purple-100 font-bold text-sm sm:text-base max-w-xl">
+              Explore 4 seasonal worlds with interactive voice games, stories, and XP rewards!
+            </p>
+          </div>
+
+          {/* View Switcher Pills */}
+          <div className="flex gap-2 bg-[#171439]/90 border border-white/15 p-1.5 rounded-2xl shadow-md">
+            {([
+              ['course', '🗺️ Adventure Course'],
+              ['path', '🌱 Skill Tree'],
+              ['all', '📋 All Lessons'],
+            ] as const).map(([v, label]) => {
+              if (v === 'path' && !path) return null
+              const active = view === v
+              return (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`px-4 py-2 rounded-xl font-nunito text-xs sm:text-sm font-black transition-all ${
+                    active
+                      ? 'bg-[#facc15] text-[#201c4d] shadow-md scale-105'
+                      : 'text-purple-200 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      <ScallopRibbon topBg="#201c4d" bottomBg="#fffdf8" variant="scallop" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full">
       {lp && (
-        <div className="mb-5 flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-2xl px-4 py-3">
+        <div className="mb-6 flex items-center gap-3 bg-purple-50 border border-purple-200/80 rounded-2xl px-4 py-3 shadow-sm">
           <span className="text-lg">
             {lp.style === 'video' ? '🎬' : lp.style === 'activity' ? '🎯' : '⚡'}
           </span>
           <div className="flex-1">
-            <p className="text-purple-300 font-nunito font-bold text-sm">{child?.name}&apos;s learning path</p>
+            <p className="text-purple-900 font-nunito font-extrabold text-sm">{child?.name}&apos;s learning path</p>
             <p className="text-slate-500 font-nunito text-xs">
               {currentSubjectSlug
                 ? levelHint(currentSubjectSlug, lp) || `${completedCount}/${currentLessons.length} completed`
                 : `${completedCount}/${currentLessons.length} completed · Lessons marked ✦ match ${child?.name}'s level`}
             </p>
           </div>
-          <span className="text-slate-600 font-nunito text-xs font-semibold bg-white/5 px-2 py-1 rounded-lg">
+          <span className="text-purple-700 font-nunito text-xs font-black bg-purple-100 px-2.5 py-1 rounded-xl">
             {completedCount}/{currentLessons.length} done
           </span>
         </div>
       )}
 
-      <h1 className="text-3xl font-extrabold text-white mb-5 font-nunito">Lessons</h1>
+      {path && view === 'path' ? (
+        <LearningPath path={path} onOpenLesson={id => router.push(`/lessons/${id}`)} />
+      ) : (
+      <>
 
       {/* Subject tabs */}
       <div className="flex flex-wrap gap-2 mb-6">
@@ -248,7 +321,7 @@ export default function LessonsPage() {
             >
               <SubjectIcon slug={slug} size={16} />
               {sub.name}
-              <span className={`text-[10px] font-normal px-1.5 py-0.5 rounded-full ${active ? 'bg-black/20 text-inherit' : 'bg-white/10 text-slate-500'}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${active ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
                 {subDone}/{subTotal}
               </span>
             </button>
@@ -285,7 +358,7 @@ export default function LessonsPage() {
                     <SubjectIcon slug={slug} size={16} className="opacity-90" />
                   </div>
                   <div>
-                    <h2 className="text-white font-nunito font-bold text-base">{sub.name}</h2>
+                    <h2 className="text-[#1d2445] font-nunito font-black text-lg">{sub.name}</h2>
                     <p className="text-slate-500 font-nunito text-xs">
                       {hint || `${done}/${subLessons.length} completed`}
                     </p>
@@ -311,6 +384,9 @@ export default function LessonsPage() {
           })}
         </div>
       )}
-    </PageWrapper>
+      </>
+      )}
+      </div>
+    </div>
   )
 }

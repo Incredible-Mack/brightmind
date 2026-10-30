@@ -28,7 +28,7 @@ export function Leaderboard({ entries, currentChildId }: LeaderboardProps) {
             initial={{ opacity: 0, x: -12 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05 }}
-            className={`flex items-center gap-3 p-3 rounded-xl border ${isSelf ? 'bg-[#4ade80]/10 border-[#4ade80]/30' : 'bg-[#252b3b] border-white/5'}`}
+            className={`flex items-center gap-3 p-3 rounded-xl border ${isSelf ? 'bg-[#4ade80]/10 border-[#4ade80]/30' : 'bg-white border-2 border-slate-200 border-b-4 border-slate-300 shadow-sm'}`}
           >
             <div className="w-7 text-center">
               {medal

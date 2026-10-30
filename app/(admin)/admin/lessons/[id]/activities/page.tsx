@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { adminApi, AdminActivity, AdminLesson } from '@/lib/adminApi'
 import { Spinner } from '@/components/ui/Spinner'
+import { ImagePicker } from '@/components/admin/ImagePicker'
+import { activityImage, optionImages, imageSrc } from '@/lib/media'
 
 const TYPE_COLORS: Record<string, string> = {
   listen:      'bg-blue-500/20 text-blue-300',
@@ -167,6 +169,8 @@ function ActivityForm({
   const [type,     setType]     = useState<ActivityType>((editActivity?.type as ActivityType) ?? 'listen')
   const [order,    setOrder]    = useState(editActivity?.order_index ?? nextOrder)
   const [xp,       setXp]       = useState(editActivity?.xp_value ?? 5)
+  const [tier,     setTier]     = useState(editActivity?.tier ?? 2)
+  const [role,     setRole]     = useState<NonNullable<AdminActivity['role']>>(editActivity?.role ?? 'practice')
   const [content,  setContent]  = useState<Record<string, unknown>>(editActivity?.content ?? {})
   const [saving,   setSaving]   = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
@@ -205,11 +209,11 @@ function ActivityForm({
     setError('')
     try {
       if (editActivity) {
-        await adminApi.activities.update(editActivity.id, { type, order_index: order, xp_value: xp, content })
-        onSaved({ ...editActivity, type, order_index: order, xp_value: xp, content })
+        await adminApi.activities.update(editActivity.id, { type, order_index: order, xp_value: xp, content, tier, role })
+        onSaved({ ...editActivity, type, order_index: order, xp_value: xp, content, tier, role })
       } else {
-        const { id } = await adminApi.activities.create({ lesson_id: lessonId, type, order_index: order, xp_value: xp, content })
-        onSaved({ id, lesson_id: lessonId, type, order_index: order, xp_value: xp, content })
+        const { id } = await adminApi.activities.create({ lesson_id: lessonId, type, order_index: order, xp_value: xp, content, tier, role })
+        onSaved({ id, lesson_id: lessonId, type, order_index: order, xp_value: xp, content, tier, role })
       }
     } catch (e) {
       setError((e as Error).message)
@@ -251,8 +255,63 @@ function ActivityForm({
         </div>
       </div>
 
+      {/* Adaptive engine: how hard this item is and what job it does */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="field-label">Difficulty tier</label>
+          <select className="field" value={tier} onChange={e => setTier(Number(e.target.value))}>
+            <option value={1}>1 · Easy</option><option value={2}>2 · Core</option><option value={3}>3 · Challenge</option>
+          </select>
+        </div>
+        <div>
+          <label className="field-label">Role in the lesson</label>
+          <select className="field" value={role} onChange={e => setRole(e.target.value as NonNullable<AdminActivity['role']>)}>
+            <option value="teach">Teaching card</option><option value="check">Quick check (new skill)</option>
+            <option value="practice">Practice</option><option value="speak">Speaking</option>
+            <option value="review">Review</option><option value="retired">Retired (hidden)</option>
+          </select>
+        </div>
+      </div>
+
       {/* Content form */}
       <ContentEditor type={type} content={content} onChange={setContent} />
+
+      {/* Real pictures instead of emoji */}
+      <div className="rounded-xl border border-white/10 p-4 space-y-4">
+        <p className="text-slate-300 font-nunito font-bold text-sm">Pictures</p>
+        <ImagePicker
+          label={type === 'listen' ? 'Picture for this card (shown instead of the emoji)' : 'Picture shown with the question'}
+          value={activityImage(content)}
+          onChange={url => {
+            const next = { ...content }
+            if (url) next.image = url; else delete next.image
+            setContent(next)
+          }}
+        />
+        {type === 'tap_answer' && (
+          <div>
+            <p className="text-slate-400 font-nunito text-xs mb-2">Pictures for the answer buttons (optional)</p>
+            <div className="grid grid-cols-2 gap-3">
+              {((content.options as string[]) ?? []).map((opt, i) => opt ? (
+                <div key={i} className="flex items-center gap-3 bg-[#252b3b] rounded-xl p-2.5">
+                  <ImagePicker
+                    compact
+                    value={optionImages(content)[opt]}
+                    onChange={url => {
+                      const imgs = { ...optionImages(content) }
+                      if (url) imgs[opt] = url; else delete imgs[opt]
+                      const next = { ...content }
+                      if (Object.keys(imgs).length) next.option_images = imgs; else delete next.option_images
+                      setContent(next)
+                    }}
+                  />
+                  <span className="text-slate-300 font-nunito text-sm truncate">{opt}</span>
+                </div>
+              ) : null)}
+            </div>
+          </div>
+        )}
+      </div>
 
       {error && <p className="text-red-400 font-nunito text-xs">{error}</p>}
 
@@ -488,6 +547,19 @@ export default function ActivitiesPage() {
                     <button onClick={() => move(i, 1)} disabled={i === sorted.length - 1} className="p-1 rounded-lg hover:bg-white/10 text-slate-600 hover:text-white disabled:opacity-20 transition-colors">
                       <ChevronDown size={14} />
                     </button>
+                  </div>
+
+                  {/* Picture: a real image replaces the emoji */}
+                  <div className="flex-shrink-0">
+                    <ImagePicker
+                      compact
+                      value={activityImage(act.content)}
+                      onChange={async url => {
+                        const content = { ...act.content }
+                        if (url) content.image = url; else delete content.image
+                        try { await adminApi.activities.update(act.id, { content }); handleSaved({ ...act, content }) } catch { /* shown on next load */ }
+                      }}
+                    />
                   </div>
 
                   {/* Content */}

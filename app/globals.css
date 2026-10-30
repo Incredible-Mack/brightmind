@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --bg: #1a1f2e;
-  --card: #252b3b;
-  --nav: #1e2433;
-  --green: #4ade80;
+  --bg: #f8f6fc;
+  --card: #ffffff;
+  --nav: #ffffff;
+  --green: #22c55e;
 }
 
 html, body {
   background-color: var(--bg);
-  color: white;
+  color: #1e293b;
   font-family: 'Nunito', sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -19,22 +19,27 @@ html, body {
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #1a1f2e; }
-::-webkit-scrollbar-thumb { background: #3b4260; border-radius: 3px; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f0f7; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 .font-nunito { font-family: 'Nunito', sans-serif; }
 
+.kids-cloud-bg {
+  background-color: #fffdf8;
+}
+
 @layer utilities {
-  .text-muted { color: #94a3b8; }
-  .text-disabled { color: #64748b; }
+  .text-muted { color: #64748b; }
+  .text-disabled { color: #94a3b8; }
 }
 
 @layer components {
   .field {
-    @apply w-full bg-[#252b3b] border border-white/10 focus:border-[#4ade80] rounded-xl px-3 py-2.5 text-white font-nunito text-sm outline-none transition-colors;
+    @apply w-full bg-white border border-slate-200 focus:border-[#22c55e] rounded-xl px-3 py-2.5 text-slate-800 font-nunito text-sm outline-none transition-colors shadow-sm;
   }
   .field-label {
-    @apply block text-slate-500 font-nunito text-xs uppercase tracking-wider mb-1;
+    @apply block text-slate-600 font-nunito text-xs uppercase tracking-wider mb-1 font-bold;
   }
 }

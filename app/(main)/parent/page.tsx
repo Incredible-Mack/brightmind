@@ -17,6 +17,8 @@ import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Spinner } from '@/components/ui/Spinner'
 import { toast } from '@/components/ui/Toast'
 import { useAppStore } from '@/store/useAppStore'
+import { useRefetchOnFocus } from '@/hooks/useRefetchOnFocus'
+import { useCoach } from '@/hooks/useCoach'
 import { getLevelFromXP } from '@/types/child'
 import type {
   AgeGroup, LearningProfile, ReadingLevel, MathLevel,
@@ -32,7 +34,7 @@ interface ChildWithStats extends ApiChild {
 }
 
 const AGE_GROUPS: Array<{ label: string; range: AgeGroup; icon: string; desc: string; color: string }> = [
-  { label: '0 – 5',   range: '0-5',   icon: '🌱', color: '#4ade80', desc: 'Letters, numbers & shapes' },
+  { label: '0 – 5',   range: '0-5',   icon: '🌱', color: '#10b981', desc: 'Letters, numbers & shapes' },
   { label: '6 – 8',   range: '6-8',   icon: '📚', color: '#3b82f6', desc: 'Reading, basic math & science' },
   { label: '9 – 11',  range: '9-11',  icon: '🔭', color: '#a855f7', desc: 'Multiplication, grammar & geography' },
   { label: '12 – 14', range: '12-14', icon: '🎓', color: '#f97316', desc: 'Algebra, essays & history' },
@@ -70,32 +72,30 @@ function PillRow<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => toggle(opt.value)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-sm font-nunito font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-sm font-nunito font-bold transition-all ${
             isSelected(opt.value)
-              ? 'border-[#4ade80] bg-[#4ade80]/15 text-[#4ade80]'
-              : 'border-white/10 bg-white/3 text-slate-400 hover:border-white/25 hover:text-white'
+              ? 'border-[#10b981] bg-emerald-50 text-[#047857]'
+              : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-slate-900'
           }`}
         >
           <span>{opt.emoji}</span>
           <span>{opt.label}</span>
-          {multi && isSelected(opt.value) && <Check size={11} />}
+          {multi && isSelected(opt.value) && <Check size={12} />}
         </button>
       ))}
     </div>
   )
 }
 
-// ── Section heading inside modal ──────────────────────────────────────────────
 function SectionLabel({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
     <div className="flex items-center gap-2 mb-2">
-      <Icon size={13} className="text-slate-500" />
-      <span className="text-slate-500 font-nunito text-xs uppercase tracking-wider font-semibold">{label}</span>
+      <Icon size={14} className="text-slate-500" />
+      <span className="text-slate-600 font-nunito text-xs uppercase tracking-wider font-extrabold">{label}</span>
     </div>
   )
 }
 
-// ── Add Child Modal ────────────────────────────────────────────────────────────
 function AddChildModal({ onClose, onCreated }: { onClose: () => void; onCreated: (child: ApiChild) => void }) {
   const STEPS = ['Name', 'Age', 'Character', 'Learning profile']
   const [step,    setStep]    = useState(0)
@@ -104,7 +104,6 @@ function AddChildModal({ onClose, onCreated }: { onClose: () => void; onCreated:
   const [avatar,  setAvatar]  = useState(AVATAR_OPTIONS[0].id)
   const [saving,  setSaving]  = useState(false)
 
-  // Learning profile state
   const [reading,   setReading]   = useState<ReadingLevel>('basic')
   const [math,      setMath]      = useState<MathLevel>('counting')
   const [style,     setStyle]     = useState<LearningStyle>('mixed')
@@ -120,17 +119,26 @@ function AddChildModal({ onClose, onCreated }: { onClose: () => void; onCreated:
   ]
 
   const handleCreate = async () => {
+    if (!name.trim() || !ageGroup) return
     setSaving(true)
+    const midAges: Record<AgeGroup, number> = { '0-5': 4, '6-8': 7, '9-11': 10, '12-14': 13 }
+    const lp: LearningProfile = {
+      reading, math, style, focus, language, interests,
+    }
     try {
-      const age = ageGroup === '0-5' ? 4 : ageGroup === '6-8' ? 7 : ageGroup === '9-11' ? 10 : 13
-      const profile: LearningProfile = { reading, math, style, focus, language, interests }
-      const child = await api.children.create({
-        name: name.trim(), age, age_group: ageGroup!, avatar_seed: avatar,
-        learning_profile: profile,
+      const created = await api.children.create({
+        name: name.trim(),
+        age: midAges[ageGroup],
+        age_group: ageGroup,
+        avatar_seed: avatar,
+        learning_profile: lp,
       })
-      onCreated(child)
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Could not create profile', 'error')
+      onCreated(created)
+      toast(`${created.name} added!`, 'success')
+      onClose()
+    } catch {
+      toast('Failed to create profile. Please try again.', 'error')
+    } finally {
       setSaving(false)
     }
   }
@@ -173,34 +181,31 @@ function AddChildModal({ onClose, onCreated }: { onClose: () => void; onCreated:
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
-        className="relative w-full max-w-lg bg-[#1a1f2e] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-lg bg-white rounded-3xl border-4 border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/5 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100 flex-shrink-0">
           <div>
-            <h2 className="text-white font-extrabold font-nunito text-lg">Add Child Profile</h2>
-            <p className="text-slate-500 font-nunito text-xs mt-0.5">{STEPS[step]}</p>
+            <h2 className="text-[#1d2445] font-black font-nunito text-lg">Add Child Profile</h2>
+            <p className="text-slate-500 font-bold font-nunito text-xs mt-0.5">{STEPS[step]}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
-            <X size={16} className="text-slate-400" />
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+            <X size={16} className="text-slate-600" />
           </button>
         </div>
 
-        {/* Progress bar */}
-        <div className="flex gap-1 px-6 py-3 flex-shrink-0">
+        <div className="flex gap-1.5 px-6 py-3 flex-shrink-0">
           {STEPS.map((_, i) => (
-            <div key={i} className={`flex-1 h-1 rounded-full transition-all duration-300 ${i < step ? 'bg-[#22c55e]' : i === step ? 'bg-[#4ade80]' : 'bg-white/10'}`} />
+            <div key={i} className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'bg-[#10b981]' : 'bg-slate-100'}`} />
           ))}
         </div>
 
-        {/* Content — scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <AnimatePresence mode="wait">
             <motion.div
@@ -208,47 +213,48 @@ function AddChildModal({ onClose, onCreated }: { onClose: () => void; onCreated:
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.15 }}
             >
-              {/* Step 0 — Name */}
               {step === 0 && (
                 <div className="py-4">
-                  <p className="text-slate-400 font-nunito text-sm mb-5">What&apos;s your child&apos;s name?</p>
+                  <p className="text-slate-600 font-bold font-nunito text-sm mb-5">What&apos;s your child&apos;s name?</p>
                   <Input label="Name" placeholder="e.g. Amara" value={name} onChange={e => setName(e.target.value)} autoFocus />
                 </div>
               )}
 
-              {/* Step 1 — Age */}
               {step === 1 && (
                 <div className="space-y-2.5 py-2">
-                  <p className="text-slate-400 font-nunito text-sm mb-4">How old is {name || 'your child'}?</p>
+                  <p className="text-slate-600 font-bold font-nunito text-sm mb-4">How old is {name || 'your child'}?</p>
                   {AGE_GROUPS.map(g => (
                     <button key={g.range} onClick={() => setAge(g.range)}
-                      className={`w-full flex items-center gap-4 p-3.5 rounded-2xl border-2 text-left transition-all ${ageGroup === g.range ? 'border-[#4ade80] bg-[#4ade80]/10' : 'border-white/10 hover:border-white/25'}`}
+                      className={`w-full flex items-center gap-4 p-3.5 rounded-2xl border-2 text-left transition-all ${
+                        ageGroup === g.range
+                          ? 'border-[#10b981] bg-emerald-50 text-[#1d2445]'
+                          : 'border-slate-200 bg-white hover:border-slate-300 text-slate-800'
+                      }`}
                     >
                       <span className="text-2xl">{g.icon}</span>
                       <div className="flex-1">
-                        <div className="text-white font-bold font-nunito text-sm">{g.label} years</div>
-                        <div className="text-slate-500 text-xs font-nunito">{g.desc}</div>
+                        <div className="font-black font-nunito text-sm">{g.label} years</div>
+                        <div className="text-slate-500 font-bold text-xs font-nunito">{g.desc}</div>
                       </div>
-                      {ageGroup === g.range && <Check size={16} className="text-[#4ade80] flex-shrink-0" />}
+                      {ageGroup === g.range && <Check size={18} className="text-[#10b981] flex-shrink-0" />}
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Step 2 — Avatar */}
               {step === 2 && (
                 <div className="py-2">
-                  <p className="text-slate-400 font-nunito text-sm mb-4">Pick {name ? `${name}'s` : 'their'} character</p>
-                  <div className="grid grid-cols-4 gap-2.5">
+                  <p className="text-slate-600 font-bold font-nunito text-sm mb-4">Pick {name ? `${name}'s` : 'their'} character</p>
+                  <div className="grid grid-cols-4 gap-3">
                     {AVATAR_OPTIONS.map(av => (
                       <button key={av.id} onClick={() => setAvatar(av.id)}
-                        className={`relative aspect-square rounded-2xl transition-all duration-200 ${avatar === av.id ? 'scale-110 ring-4 ring-[#4ade80] ring-offset-2 ring-offset-[#1a1f2e]' : 'opacity-60 hover:opacity-90 hover:scale-105'}`}
+                        className={`relative aspect-square rounded-2xl transition-all duration-200 ${avatar === av.id ? 'scale-105 ring-4 ring-[#10b981] ring-offset-2' : 'opacity-70 hover:opacity-100 hover:scale-102'}`}
                       >
-                        <div className={`w-full h-full rounded-2xl bg-gradient-to-br ${av.gradient} flex items-center justify-center text-3xl`}>
+                        <div className={`w-full h-full rounded-2xl ${av.bgColor} flex items-center justify-center text-3xl shadow-sm`}>
                           {av.emoji}
                         </div>
                         {avatar === av.id && (
-                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#4ade80] rounded-full flex items-center justify-center text-[10px] text-[#0f1117] font-bold">✓</div>
+                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#10b981] border-2 border-white rounded-full flex items-center justify-center text-[10px] text-white font-bold">✓</div>
                         )}
                       </button>
                     ))}
@@ -256,50 +262,37 @@ function AddChildModal({ onClose, onCreated }: { onClose: () => void; onCreated:
                 </div>
               )}
 
-              {/* Step 3 — Learning Profile */}
               {step === 3 && (
                 <div className="space-y-5 py-2">
-                  <p className="text-slate-400 font-nunito text-sm">
+                  <p className="text-slate-600 font-bold font-nunito text-sm">
                     Help us personalise {name ? `${name}'s` : 'their'} learning journey.
-                    <span className="text-slate-600"> You can update this anytime.</span>
                   </p>
 
-                  {/* Reading */}
                   <div>
                     <SectionLabel icon={BookOpen} label="Reading ability" />
                     <PillRow options={readingOpts} value={reading} onChange={v => setReading(v as ReadingLevel)} />
                   </div>
 
-                  {/* Math */}
                   <div>
                     <SectionLabel icon={Brain} label="Numbers & maths" />
                     <PillRow options={mathOpts} value={math} onChange={v => setMath(v as MathLevel)} />
                   </div>
 
-                  {/* Language background */}
                   <div>
                     <SectionLabel icon={Globe} label="Language background" />
                     <PillRow options={langOpts} value={language} onChange={v => setLanguage(v as LanguageBackground)} />
-                    {language === 'learning_english' && (
-                      <p className="text-slate-600 font-nunito text-xs mt-1.5">
-                        BrightMind will use simpler language and more visual cues.
-                      </p>
-                    )}
                   </div>
 
-                  {/* Learning style */}
                   <div>
                     <SectionLabel icon={Sparkles} label="How do they learn best?" />
                     <PillRow options={styleOpts} value={style} onChange={v => setStyle(v as LearningStyle)} />
                   </div>
 
-                  {/* Focus time */}
                   <div>
                     <SectionLabel icon={Clock} label="Comfortable session length" />
                     <PillRow options={focusOpts} value={focus} onChange={v => setFocus(v as FocusTime)} />
                   </div>
 
-                  {/* Interests */}
                   <div>
                     <SectionLabel icon={Star} label="What excites them? (pick any)" />
                     <PillRow
@@ -308,9 +301,6 @@ function AddChildModal({ onClose, onCreated }: { onClose: () => void; onCreated:
                       onChange={v => setInterests(v as Interest[])}
                       multi
                     />
-                    <p className="text-slate-600 font-nunito text-[10px] mt-2">
-                      Used to make lessons feel more relevant and fun
-                    </p>
                   </div>
                 </div>
               )}
@@ -318,21 +308,20 @@ function AddChildModal({ onClose, onCreated }: { onClose: () => void; onCreated:
           </AnimatePresence>
         </div>
 
-        {/* Footer */}
-        <div className="flex gap-3 px-6 py-4 border-t border-white/5 flex-shrink-0">
+        <div className="flex gap-3 px-6 py-4 border-t border-slate-100 flex-shrink-0">
           {step > 0 && (
             <button onClick={() => setStep(s => s - 1)}
-              className="w-11 h-11 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors"
+              className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center transition-colors"
             >
-              <ChevronLeft size={18} className="text-slate-300" />
+              <ChevronLeft size={18} className="text-slate-700" />
             </button>
           )}
           <button
             disabled={!canNext[step] || saving}
             onClick={() => step < 3 ? setStep(s => s + 1) : handleCreate()}
-            className="flex-1 h-11 rounded-xl bg-[#4ade80] hover:bg-[#22c55e] disabled:opacity-40 disabled:cursor-not-allowed text-[#0f1117] font-extrabold font-nunito text-sm flex items-center justify-center gap-2 transition-colors"
+            className="flex-1 h-11 rounded-2xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black font-nunito text-sm flex items-center justify-center gap-2 border-b-4 border-[#047857] shadow-sm transition-all"
           >
-            {saving ? <Spinner size={16} color="#0f1117" /> : step < 3 ? (
+            {saving ? <Spinner size={16} color="#ffffff" /> : step < 3 ? (
               <>Continue <ChevronRight size={16} /></>
             ) : (
               <>Create Profile <Check size={16} /></>
@@ -344,202 +333,263 @@ function AddChildModal({ onClose, onCreated }: { onClose: () => void; onCreated:
   )
 }
 
-// ── Profile badge helpers ──────────────────────────────────────────────────────
 function profileBadges(profile: NonNullable<ApiChild['learning_profile']>) {
   const badges: Array<{ label: string; emoji: string }> = []
-  const readingMap = { none: { label: 'Beginner reader', emoji: '🌱' }, basic: { label: 'Learning to read', emoji: '📖' }, fluent: { label: 'Fluent reader', emoji: '✨' } }
-  const mathMap = { none: { label: 'Numbers starter', emoji: '🔢' }, counting: { label: 'Counting & adding', emoji: '➕' }, arithmetic: { label: 'Advanced maths', emoji: '🧮' } }
-  const styleMap = { video: { label: 'Video learner', emoji: '🎬' }, activity: { label: 'Hands-on', emoji: '🎯' }, mixed: { label: 'Balanced', emoji: '⚡' } }
-  const langMap = { english_first: null, bilingual: { label: 'Bilingual', emoji: '🌍' }, learning_english: { label: 'Learning English', emoji: '📚' } }
-  badges.push(readingMap[profile.reading])
-  badges.push(mathMap[profile.math])
-  badges.push(styleMap[profile.style])
+  const readingMap: Record<ReadingLevel, { label: string; emoji: string }> = {
+    none:   { label: 'Pre-reader', emoji: '🌱' },
+    basic:  { label: 'Early reader', emoji: '📖' },
+    fluent: { label: 'Fluent reader', emoji: '✨' },
+  }
+  const mathMap: Record<MathLevel, { label: string; emoji: string }> = {
+    none:       { label: 'Counting basics', emoji: '🔢' },
+    counting:   { label: 'Addition & subtraction', emoji: '➕' },
+    arithmetic: { label: 'Advanced math', emoji: '🧮' },
+  }
+  const styleMap: Record<LearningStyle, { label: string; emoji: string }> = {
+    video:    { label: 'Video learner', emoji: '🎬' },
+    activity: { label: 'Hands-on', emoji: '🎯' },
+    mixed:    { label: 'Balanced', emoji: '⚡' },
+  }
+  const langMap: Record<LanguageBackground, { label: string; emoji: string }> = {
+    english_first:    { label: 'English first', emoji: '🏡' },
+    bilingual:        { label: 'Bilingual', emoji: '🌍' },
+    learning_english: { label: 'Learning English', emoji: '📚' },
+  }
+
+  const r = readingMap[profile.reading]
+  if (r) badges.push(r)
+  const m = mathMap[profile.math]
+  if (m) badges.push(m)
+  const s = styleMap[profile.style]
+  if (s) badges.push(s)
   const lang = langMap[profile.language]
   if (lang) badges.push(lang)
   return badges
 }
 
-// ── Child Card ────────────────────────────────────────────────────────────────
 function ChildCard({ child, totalLessons, isActive, isSwitching, onSwitch }: {
   child: ChildWithStats; totalLessons: number; isActive: boolean; isSwitching: boolean; onSwitch: () => void
 }) {
-  const xp   = child.xp ?? 0
+  const xp = child.xp ?? 0
   const { level, name: levelName, nextXP, prevXP } = getLevelFromXP(xp)
-  const xpPct     = nextXP > prevXP ? Math.round(((xp - prevXP) / (nextXP - prevXP)) * 100) : 100
+  const xpPct = nextXP > prevXP ? Math.round(((xp - prevXP) / (nextXP - prevXP)) * 100) : 100
   const lessonPct = totalLessons > 0 ? Math.round((child.lessonsCompleted / totalLessons) * 100) : 0
-  const ageGrp    = ageToGroup(child.age)
-  const ageCfg    = AGE_GROUPS.find(g => g.range === ageGrp)!
-  const lp        = child.learning_profile
+  const ageGrp = ageToGroup(child.age)
+  const ageCfg = AGE_GROUPS.find(g => g.range === ageGrp)!
+  const lp = child.learning_profile
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-      className={`relative bg-[#1a1f2e] rounded-3xl border transition-all ${isActive ? 'border-[#4ade80]/40 shadow-lg shadow-[#4ade80]/5' : 'border-white/5 hover:border-white/10'}`}
+      className={`relative bg-white rounded-3xl border-2 transition-all p-5 shadow-sm ${
+        isActive
+          ? 'border-[#10b981] border-b-4 border-b-[#059669] shadow-md'
+          : 'border-slate-200 border-b-4 border-b-slate-300'
+      }`}
     >
       {isActive && (
-        <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-[#4ade80]/15 border border-[#4ade80]/30 rounded-full px-2.5 py-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse" />
-          <span className="text-[#4ade80] font-nunito font-bold text-[10px] uppercase tracking-wide">Active</span>
+        <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 rounded-full px-3 py-1">
+          <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
+          <span className="text-[#047857] font-nunito font-black text-[10px] uppercase tracking-wide">Active</span>
         </div>
       )}
 
-      <div className="p-5">
-        {/* Avatar + name */}
-        <div className="flex items-center gap-4 mb-4">
-          <Avatar seed={child.avatar_seed} name={child.name} size={60} ring={isActive} />
-          <div>
-            <h3 className="text-white font-extrabold text-lg font-nunito">{child.name}</h3>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="inline-flex items-center gap-1 font-nunito font-bold text-xs px-2.5 py-0.5 rounded-full" style={{ background: `${ageCfg.color}20`, color: ageCfg.color }}>
-                {ageCfg.icon} {ageGrp} yrs
-              </span>
-              <span className="text-slate-500 font-nunito text-xs">Lvl {level} · {levelName}</span>
-            </div>
+      {/* Avatar + name */}
+      <div className="flex items-center gap-4 mb-4">
+        <Avatar seed={child.avatar_seed} name={child.name} size={60} ring={isActive} />
+        <div>
+          <h3 className="text-[#1d2445] font-black text-xl font-nunito">{child.name}</h3>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="inline-flex items-center gap-1 font-nunito font-bold text-xs px-2.5 py-0.5 rounded-full" style={{ background: `${ageCfg.color}20`, color: ageCfg.color }}>
+              {ageCfg.icon} {ageGrp} yrs
+            </span>
+            <span className="text-slate-500 font-bold font-nunito text-xs">Lvl {level} · {levelName}</span>
           </div>
         </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {[
-            { icon: Star,  val: xp.toLocaleString(), label: 'XP',     color: '#eab308' },
-            { icon: Flame, val: `${child.streak ?? 0}d`, label: 'Streak', color: '#f97316' },
-            { icon: Heart, val: `${child.lives ?? 5}/5`,  label: 'Lives',  color: '#ef4444' },
-          ].map(({ icon: Icon, val, label, color }) => (
-            <div key={label} className="bg-[#252b3b] rounded-xl p-2.5 text-center">
-              <Icon size={13} style={{ color }} className="mx-auto mb-1" fill={color} />
-              <div className="text-white font-bold text-sm font-nunito">{val}</div>
-              <div className="text-slate-600 text-[10px] font-nunito uppercase tracking-wide">{label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Progress */}
-        <div className="space-y-2.5 mb-4">
-          <div>
-            <div className="flex justify-between text-[10px] font-nunito text-slate-500 mb-1">
-              <span>XP progress</span><span>{xp} / {nextXP}</span>
-            </div>
-            <ProgressBar value={xpPct} color="#eab308" height={4} />
-          </div>
-          <div>
-            <div className="flex justify-between text-[10px] font-nunito text-slate-500 mb-1">
-              <span>Lessons completed</span><span>{child.lessonsCompleted} / {totalLessons}</span>
-            </div>
-            <ProgressBar value={lessonPct} color="#3b82f6" height={4} />
-          </div>
-        </div>
-
-        {/* Learning profile */}
-        {lp ? (
-          <div className="bg-[#252b3b] rounded-2xl p-3 mb-4">
-            <p className="text-slate-500 font-nunito text-[10px] uppercase tracking-wider mb-2 font-semibold">Learning profile</p>
-            <div className="flex flex-wrap gap-1.5">
-              {profileBadges(lp).map(b => (
-                <span key={b.label} className="flex items-center gap-1 bg-white/5 text-slate-300 font-nunito text-[10px] font-semibold px-2 py-1 rounded-lg">
-                  {b.emoji} {b.label}
-                </span>
-              ))}
-              {(lp.interests ?? []).length > 0 && (
-                <span className="flex items-center gap-1 bg-purple-500/10 text-purple-300 font-nunito text-[10px] font-semibold px-2 py-1 rounded-lg">
-                  Likes: {(lp.interests ?? []).map(i => ({ animals:'🐾', space:'🚀', sports:'⚽', arts:'🎨', stories:'📚', puzzles:'🧩' }[i])).join(' ')}
-                </span>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-[#252b3b] rounded-2xl p-3 mb-4 flex items-center gap-3">
-            <span className="text-xl">{ageCfg.icon}</span>
-            <div>
-              <p className="text-white font-nunito font-semibold text-xs">Enrolled curriculum</p>
-              <p className="text-slate-500 font-nunito text-xs">{ageCfg.desc}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Switch / Active */}
-        {isActive ? (
-          <div className="flex items-center justify-center gap-2 h-10 rounded-xl bg-[#4ade80]/10 border border-[#4ade80]/20">
-            <Check size={14} className="text-[#4ade80]" />
-            <span className="text-[#4ade80] font-nunito font-bold text-sm">Currently learning</span>
-          </div>
-        ) : (
-          <button
-            onClick={onSwitch} disabled={isSwitching}
-            className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-white/5 hover:bg-[#4ade80]/10 border border-white/10 hover:border-[#4ade80]/30 text-slate-300 hover:text-[#4ade80] font-nunito font-bold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isSwitching ? <><Spinner size={14} color="currentColor" /> Switching…</> : <>Switch to {child.name} <ArrowRight size={14} /></>}
-          </button>
-        )}
       </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {[
+          { icon: Star,  val: xp.toLocaleString(), label: 'XP',     color: '#eab308' },
+          { icon: Flame, val: `${child.streak ?? 0}d`, label: 'Streak', color: '#f97316' },
+          { icon: Heart, val: `${child.lives ?? 5}/5`,  label: 'Lives',  color: '#ef4444' },
+        ].map(({ icon: Icon, val, label, color }) => (
+          <div key={label} className="bg-slate-50 border border-slate-200 rounded-2xl p-2.5 text-center">
+            <Icon size={14} style={{ color }} className="mx-auto mb-1" fill={color} />
+            <div className="text-[#1d2445] font-black text-sm font-nunito">{val}</div>
+            <div className="text-slate-500 text-[10px] font-bold font-nunito uppercase tracking-wide">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Progress */}
+      <div className="space-y-2.5 mb-4">
+        <div>
+          <div className="flex justify-between text-[11px] font-bold font-nunito text-slate-500 mb-1">
+            <span>XP progress</span><span>{xp} / {nextXP}</span>
+          </div>
+          <ProgressBar value={xpPct} color="#eab308" height={6} />
+        </div>
+        <div>
+          <div className="flex justify-between text-[11px] font-bold font-nunito text-slate-500 mb-1">
+            <span>Lessons completed</span><span>{child.lessonsCompleted} / {totalLessons}</span>
+          </div>
+          <ProgressBar value={lessonPct} color="#3b82f6" height={6} />
+        </div>
+      </div>
+
+      {/* Learning profile */}
+      {lp ? (
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-4">
+          <p className="text-slate-500 font-nunito text-[10px] uppercase tracking-wider mb-2 font-black">Learning profile</p>
+          <div className="flex flex-wrap gap-1.5">
+            {profileBadges(lp).map(b => (
+              <span key={b.label} className="flex items-center gap-1 bg-white border border-slate-200 text-slate-700 font-nunito text-[11px] font-bold px-2 py-1 rounded-lg">
+                {b.emoji} {b.label}
+              </span>
+            ))}
+            {(lp.interests ?? []).length > 0 && (
+              <span className="flex items-center gap-1 bg-purple-50 border border-purple-200 text-purple-800 font-nunito text-[11px] font-bold px-2 py-1 rounded-lg">
+                Likes: {(lp.interests ?? []).map(i => ({ animals:'🐾', space:'🚀', sports:'⚽', arts:'🎨', stories:'📚', puzzles:'🧩' }[i])).join(' ')}
+              </span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-4 flex items-center gap-3">
+          <span className="text-xl">{ageCfg.icon}</span>
+          <div>
+            <p className="text-[#1d2445] font-nunito font-bold text-xs">Enrolled curriculum</p>
+            <p className="text-slate-500 font-nunito text-xs font-bold">{ageCfg.desc}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Switch / Active */}
+      {isActive ? (
+        <div className="flex items-center justify-center gap-2 h-11 rounded-2xl bg-emerald-50 border border-emerald-300">
+          <Check size={16} className="text-[#047857]" />
+          <span className="text-[#047857] font-nunito font-black text-sm">Currently learning</span>
+        </div>
+      ) : (
+        <button
+          onClick={onSwitch} disabled={isSwitching}
+          className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl bg-[#facc15] hover:bg-[#eab308] border-b-4 border-amber-500 text-[#1d2445] font-nunito font-black text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+        >
+          {isSwitching ? <><Spinner size={14} color="#1d2445" /> Switching…</> : <>Switch to {child.name} <ArrowRight size={14} /></>}
+        </button>
+      )}
     </motion.div>
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-export default function ParentPage() {
+export default function ParentHubPage() {
   const router = useRouter()
   const { child: activeChild, setChild } = useAppStore()
-  const [children,     setChildren]     = useState<ChildWithStats[]>([])
+  const [children, setChildren] = useState<ChildWithStats[]>([])
   const [totalLessons, setTotalLessons] = useState(0)
-  const [loading,      setLoading]      = useState(true)
-  const [switching,    setSwitching]    = useState<number | null>(null)
-  const [showAdd,      setShowAdd]      = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [showAdd, setShowAdd] = useState(false)
+  const [switching, setSwitching] = useState<number | null>(null)
+
+  const coach = useCoach('weekly_plan')
 
   const load = useCallback(async () => {
-    if (!getToken()) { setLoading(false); return }
     try {
-      const [childList, allLessons] = await Promise.all([api.children.list(), api.lessons.list()])
-      setTotalLessons(allLessons.length)
+      const token = getToken()
+      if (!token) { router.push('/login'); return }
+
+      const [kids, lessons] = await Promise.all([
+        api.children.list(),
+        api.lessons.list(),
+      ])
+      setTotalLessons(lessons.length)
+
       const withStats: ChildWithStats[] = await Promise.all(
-        childList.map(async c => {
+        kids.map(async k => {
           try {
-            const progress = await api.progress.list(c.id)
-            return { ...c, lessonsCompleted: progress.filter(p => p.status === 'completed').length, totalLessons: allLessons.length }
+            const prog = await api.progress.list(Number(k.id))
+            const completed = prog.filter(p => p.status === 'completed').length
+            return { ...k, lessonsCompleted: completed, totalLessons: lessons.length }
           } catch {
-            return { ...c, lessonsCompleted: 0, totalLessons: allLessons.length }
+            return { ...k, lessonsCompleted: 0, totalLessons: lessons.length }
           }
         })
       )
       setChildren(withStats)
+      if (!activeChild && withStats[0]) {
+        setChild({
+          id: String(withStats[0].id),
+          user_id: String(withStats[0].user_id),
+          name: withStats[0].name,
+          age: withStats[0].age,
+          avatar_seed: withStats[0].avatar_seed,
+          created_at: (withStats[0] as any).created_at || new Date().toISOString(),
+          learning_profile: withStats[0].learning_profile,
+        })
+      }
     } catch {
-      toast('Could not load profiles', 'error')
+      toast('Could not load family profiles', 'error')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [activeChild, router, setChild])
 
   useEffect(() => { load() }, [load])
+  useRefetchOnFocus(load)
+
+  const handleSwitch = async (child: ChildWithStats) => {
+    setSwitching(Number(child.id))
+    setChild({
+      id: String(child.id),
+      user_id: String(child.user_id),
+      name: child.name,
+      age: child.age,
+      avatar_seed: child.avatar_seed,
+      created_at: (child as any).created_at || new Date().toISOString(),
+      learning_profile: child.learning_profile,
+    })
+    toast(`Switched to ${child.name}!`, 'success')
+    setSwitching(null)
+  }
 
   const handleCreated = (newChild: ApiChild) => {
+    const withStats: ChildWithStats = { ...newChild, lessonsCompleted: 0, totalLessons }
+    setChildren(prev => [...prev, withStats])
+    setChild({
+      id: String(newChild.id),
+      user_id: String(newChild.user_id),
+      name: newChild.name,
+      age: newChild.age,
+      avatar_seed: newChild.avatar_seed,
+      created_at: (newChild as any).created_at || new Date().toISOString(),
+      learning_profile: newChild.learning_profile,
+    })
     setShowAdd(false)
     toast(`${newChild.name}'s profile created!`, 'success')
     load()
   }
 
-  const handleSwitch = async (child: ApiChild) => {
-    setSwitching(Number(child.id))
-    setChild({
-      id: String(child.id), user_id: String(child.user_id),
-      name: child.name, age: child.age, avatar_seed: child.avatar_seed,
-      created_at: '', learning_profile: child.learning_profile ?? undefined,
-    })
-    toast(`Switched to ${child.name}`, 'success')
-    router.push('/dashboard')
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Spinner size={36} color="#10b981" />
+      </div>
+    )
   }
-
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size={40} /></div>
 
   return (
     <PageWrapper>
       {/* Header */}
-      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
-            <Users size={26} className="text-blue-400" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-purple-100 border border-purple-200 flex items-center justify-center shadow-sm">
+            <Users size={24} className="text-purple-700" />
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold text-white font-nunito">Family Hub</h1>
-            <p className="text-slate-400 font-nunito text-sm mt-0.5">
+            <h1 className="text-3xl sm:text-4xl font-black text-[#1d2445] font-nunito tracking-tight">Family Hub</h1>
+            <p className="text-slate-500 font-bold font-nunito text-sm mt-0.5">
               {children.length === 0
                 ? 'Add your children to get started'
                 : `${children.length} child profile${children.length > 1 ? 's' : ''} — personalised lessons for each`}
@@ -548,22 +598,55 @@ export default function ParentPage() {
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 bg-[#4ade80] hover:bg-[#22c55e] text-[#0f1117] font-extrabold font-nunito text-sm px-5 py-3 rounded-xl transition-colors shadow-md shadow-green-500/20"
+          className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white font-black font-nunito text-sm px-6 py-3.5 rounded-2xl border-b-4 border-[#047857] shadow-sm transition-all active:translate-y-0.5"
         >
           <Plus size={18} /> Add Child
         </button>
       </div>
 
+      {/* Weekly plan for the active child */}
+      {activeChild && coach.note && coach.rec && (
+        <div className="bg-white border-2 border-purple-200 border-b-4 border-purple-300 rounded-3xl p-6 mb-6 shadow-sm">
+          <p className="text-purple-900 font-nunito text-xs uppercase tracking-widest mb-2 font-black">
+            This week with {activeChild.name}
+          </p>
+          <p className="text-slate-700 font-nunito font-bold text-sm leading-relaxed mb-3">{coach.note.parent}</p>
+          {coach.rec.engine && (
+            <p className="text-slate-500 font-nunito text-xs mb-3 font-bold">
+              <strong className="text-purple-800">{coach.rec.engine.skills_mastered}</strong> skill{coach.rec.engine.skills_mastered === 1 ? '' : 's'} verified by checkpoint · {coach.rec.engine.skills_started} started
+              {coach.rec.engine.ready_for_checkpoint.length > 0 && <> · ready for a checkpoint: {coach.rec.engine.ready_for_checkpoint.join(', ')}</>}
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
+            {coach.rec.mastery.map(m => (
+              <div key={m.subject_id} className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                <p className="text-[#1d2445] font-nunito font-black text-xs">{m.subject_name}</p>
+                <p className="font-nunito font-bold text-[11px] mt-0.5" style={{ color: m.level === 'strong' ? '#10b981' : m.level === 'weak' ? '#f59e0b' : '#64748b' }}>
+                  {m.level === 'new' ? 'Not started' : m.level === 'weak' ? 'Needs practice' : m.level === 'strong' ? 'Strong' : 'Going well'}
+                  {m.avg_score != null ? ` · ${m.avg_score}%` : ''}
+                </p>
+                <p className="text-slate-400 font-nunito font-bold text-[10px]">{m.completed}/{m.total} lessons</p>
+              </div>
+            ))}
+          </div>
+          {coach.note.tips.length > 0 && (
+            <ul className="list-disc pl-5 space-y-1">
+              {coach.note.tips.map((t, i) => <li key={i} className="text-slate-600 font-nunito font-bold text-xs">{t}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
       {/* Age group reference */}
-      <div className="bg-[#1a1f2e] border border-white/5 rounded-2xl p-4 mb-6">
-        <p className="text-slate-500 font-nunito text-xs uppercase tracking-widest mb-3 font-semibold">Curriculum by age</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="bg-white border-2 border-slate-200 border-b-4 border-slate-300 rounded-3xl p-5 mb-6 shadow-sm">
+        <p className="text-slate-500 font-nunito text-xs uppercase tracking-widest mb-3 font-black">Curriculum by age</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {AGE_GROUPS.map(g => (
-            <div key={g.range} className="bg-[#252b3b] rounded-xl p-3 flex items-center gap-2.5">
-              <span className="text-lg">{g.icon}</span>
+            <div key={g.range} className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3">
+              <span className="text-2xl">{g.icon}</span>
               <div>
-                <p className="font-nunito font-bold text-xs" style={{ color: g.color }}>{g.label} yrs</p>
-                <p className="text-slate-500 font-nunito text-[10px] leading-tight">{g.desc}</p>
+                <p className="font-nunito font-black text-xs" style={{ color: g.color }}>{g.label} yrs</p>
+                <p className="text-slate-500 font-bold font-nunito text-[11px] leading-tight">{g.desc}</p>
               </div>
             </div>
           ))}
@@ -572,19 +655,19 @@ export default function ParentPage() {
 
       {/* Child grid */}
       {children.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
-          <div className="w-24 h-24 rounded-full bg-[#252b3b] border border-white/5 flex items-center justify-center text-5xl">
+        <div className="bg-white border-2 border-slate-200 border-b-4 border-slate-300 rounded-3xl p-12 text-center shadow-sm flex flex-col items-center justify-center gap-4">
+          <div className="w-20 h-20 rounded-full bg-purple-50 border border-purple-200 flex items-center justify-center text-4xl shadow-sm">
             👨‍👩‍👧‍👦
           </div>
           <div>
-            <p className="text-white font-bold text-xl font-nunito mb-2">No child profiles yet</p>
-            <p className="text-slate-500 font-nunito text-sm max-w-xs mx-auto">
+            <p className="text-[#1d2445] font-black text-xl font-nunito mb-1">No child profiles yet</p>
+            <p className="text-slate-500 font-bold font-nunito text-sm max-w-sm mx-auto">
               Add each of your children — they get personalised lessons based on their learning profile.
             </p>
           </div>
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 bg-[#4ade80] hover:bg-[#22c55e] text-[#0f1117] font-extrabold font-nunito px-7 py-3 rounded-xl transition-colors"
+            className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white font-black font-nunito px-7 py-3.5 rounded-2xl border-b-4 border-[#047857] shadow-sm transition-all"
           >
             <Plus size={18} /> Add First Child
           </button>
@@ -603,22 +686,22 @@ export default function ParentPage() {
           ))}
           <button
             onClick={() => setShowAdd(true)}
-            className="border-2 border-dashed border-white/10 hover:border-[#4ade80]/30 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 transition-colors group min-h-[200px]"
+            className="bg-white/60 hover:bg-white border-2 border-dashed border-slate-300 hover:border-[#10b981] rounded-3xl p-8 flex flex-col items-center justify-center gap-3 transition-all group min-h-[200px] shadow-sm"
           >
-            <div className="w-14 h-14 rounded-full bg-[#4ade80]/10 group-hover:bg-[#4ade80]/20 flex items-center justify-center transition-colors">
-              <Plus size={24} className="text-[#4ade80]" />
+            <div className="w-14 h-14 rounded-full bg-emerald-50 group-hover:bg-emerald-100 border border-emerald-200 flex items-center justify-center transition-colors">
+              <Plus size={24} className="text-[#10b981]" />
             </div>
-            <div className="text-center">
-              <p className="text-slate-400 group-hover:text-white font-nunito font-semibold text-sm transition-colors">Add another child</p>
-              <p className="text-slate-600 font-nunito text-xs mt-0.5">Each child gets their own profile</p>
-            </div>
+            <span className="text-[#1d2445] font-black font-nunito text-sm">Add another child</span>
           </button>
         </div>
       )}
 
-      <AnimatePresence>
-        {showAdd && <AddChildModal onClose={() => setShowAdd(false)} onCreated={handleCreated} />}
-      </AnimatePresence>
+      {showAdd && (
+        <AddChildModal
+          onClose={() => setShowAdd(false)}
+          onCreated={handleCreated}
+        />
+      )}
     </PageWrapper>
   )
 }

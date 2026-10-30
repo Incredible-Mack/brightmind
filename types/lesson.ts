@@ -1,6 +1,6 @@
 import type { AgeGroup } from './child'
 
-export type SubjectSlug = 'math' | 'english' | 'science' | 'social-studies'
+export type SubjectSlug = 'math' | 'english' | 'science' | 'social-studies' | 'life-skills' | 'creative-arts'
 
 export interface Subject {
   id: string | number

@@ -17,7 +17,7 @@ export function Avatar({ seed, name, size = 40, className = '', ring = false }: 
       role="img"
       aria-label={name}
       className={`
-        rounded-full bg-gradient-to-br ${av.gradient} flex items-center justify-center
+        rounded-full ${av.bgColor} flex items-center justify-center
         flex-shrink-0 select-none leading-none
         ${ring ? `ring-4 ring-[#4ade80] ring-offset-2 ring-offset-[#1a1f2e]` : ''}
         ${className}

@@ -1,4 +1,4 @@
-# BrightMind
+# Bright Steps
 
 Gamified AI-powered educational platform for children aged 0–14.
 
@@ -6,8 +6,8 @@ Gamified AI-powered educational platform for children aged 0–14.
 
 - **Next.js 14** (App Router, TypeScript)
 - **Tailwind CSS** + **Framer Motion**
-- **Supabase** (Auth, PostgreSQL, Storage, Realtime)
-- **Claude API** (claude-sonnet-4-6) — 3-tier AI teacher with local fallback
+- **PHP + MySQL API** (`brightmindapi`) — auth, lessons, progress, achievements
+- **Claude API** — cached, capped coaching notes and admin-reviewed lesson variants; everything else runs on free rules and templates
 - **Web Speech API** (primary TTS/STT) + **ElevenLabs** / **Whisper** (fallbacks)
 - **Zustand** — global XP, lives, streak, session state
 - **canvas-confetti** — celebrations
@@ -23,20 +23,24 @@ npm install
 ### 2. Set up environment variables
 Copy `.env.local` and fill in your keys:
 ```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-ANTHROPIC_API_KEY=         # optional — app works without (uses Tier 2 fallback)
+NEXT_PUBLIC_API_URL=       # the PHP/MySQL API, e.g. http://brightmindapi.test
+ANTHROPIC_API_KEY=         # optional — the app works without it (rules + templates)
 ELEVENLABS_API_KEY=        # optional TTS fallback
 OPENAI_API_KEY=            # optional STT fallback (Whisper)
 NEXT_PUBLIC_SHOW_AI_TIER=true
+
+# AI cost controls (all optional)
+AI_ENABLED=true            # false = no runtime AI calls at all
+AI_RUNTIME_MODEL=claude-haiku-5-5
+AI_AUTHOR_MODEL=claude-sonnet-5-5   # admin variant authoring only
+AI_DAILY_CAP_PER_CHILD=6
+AI_DAILY_CAP_GLOBAL=500
+AI_MAX_CALLS_PER_HOUR=120  # per server instance (hints, borderline speech grading)
 ```
 
-### 3. Set up Supabase
-1. Create a project at [supabase.com](https://supabase.com)
-2. Run `supabase/schema.sql` in the SQL Editor
-3. Run `supabase/seed.sql` in the SQL Editor
-4. Enable Realtime for the `child_profiles` table
+### 3. Set up the API
+Point a local web server at `brightmindapi/`, import `brightmindapi/schema.sql`, and edit `config.php`.
+The AI tables (`lesson_variants`, `ai_cache`, `ai_usage`) are created automatically on first use.
 
 ### 4. Run dev server
 ```bash
@@ -45,15 +49,19 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-## AI Teacher — 3-Tier System
+## AI — rules first, AI second
 
-| Tier | Engine | When Used |
-|------|--------|-----------|
-| 1 | Claude API (claude-sonnet-4-6) | `ANTHROPIC_API_KEY` set + responds < 4s |
-| 2 | Local rule-based + Levenshtein grader | Claude unavailable or slow |
-| 3 | Static strings | Tier 2 throws |
+| What | How | Cost |
+|------|-----|------|
+| Next lesson, mastery, review | Rules over `lesson_progress` (`api/recommend.php`) | free |
+| Narration, celebrations, most feedback | Template pools (`lib/fallbackTeacher*.ts`) | free |
+| Letter-sound practice | Local matcher (`lib/phonics.ts`) | free |
+| Unique lessons | Admin-approved AI variants (`/admin/variants`) + `{name}`/`{theme}` tokens | one call per variant |
+| Coaching note (dashboard, parent page, lesson end) | `/api/ai/coach`: cached per child + progress snapshot, daily caps, kill switch | ≤ 1 small call per progress change |
+| Hints, borderline speech grading | Small model, hourly budget per instance | rare |
 
-Set `NEXT_PUBLIC_SHOW_AI_TIER=true` to show a corner badge (AI / Local / Default) in dev.
+Every AI call falls back to the free text, so `AI_ENABLED=false` keeps the app fully working.
+Calls are logged in the `ai_usage` table.
 
 ## Voice System
 

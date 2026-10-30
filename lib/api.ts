@@ -55,6 +55,15 @@ export const api = {
     me: () => request<{ user: User; child?: Child }>('auth/me'),
   },
 
+  // ── Premium / payments ──
+  billing: {
+    plans: () => request<Plans>('api/plans', {}, !!getToken()),
+    subscribe: (plan: string, gateway: 'espees' | 'kingspay') =>
+      request<{ redirect_url: string }>('api/subscribe', { method: 'POST', body: JSON.stringify({ plan, gateway }) }),
+    // verify=true re-checks payments still pending with the gateway (when the buyer did not come back through the redirect)
+    status: (verify = false) => request<SubscriptionStatus>(`api/subscription${verify ? '?verify=1' : ''}`),
+  },
+
   // ── Subjects ──────────────────────────────────────────
   subjects: {
     list: () => request<Subject[]>('api/subjects', {}, false),
@@ -75,8 +84,9 @@ export const api = {
 
   // ── Activities ────────────────────────────────────────
   activities: {
-    byLesson: (lessonId: number) =>
-      request<Activity[]>(`api/activities?lesson_id=${lessonId}`, {}, false),
+    // With a child id the server may swap in an approved variant (needs the parent's token)
+    byLesson: (lessonId: number, childId?: number) =>
+      request<Activity[]>(`api/activities?lesson_id=${lessonId}${childId ? `&child_id=${childId}` : ''}`, {}, !!childId),
   },
 
   // ── Children ──────────────────────────────────────────
@@ -128,6 +138,30 @@ export const api = {
       }),
   },
 
+  // ── The personalised run of a lesson (server-side adaptive engine) ──
+  lessonPlan: {
+    get: (lessonId: number, childId: number) =>
+      request<LessonPlan>(`api/lesson_plan?lesson_id=${lessonId}&child_id=${childId}`),
+  },
+
+  // ── Skill checkpoints (prove a skill is really known) ──
+  checkpoint: {
+    get: (skill: string, childId: number) =>
+      request<CheckpointSet>(`api/checkpoint?skill=${encodeURIComponent(skill)}&child_id=${childId}`),
+    submit: (childId: number, skill: string, answers: Array<{ activity_id: number; correct: boolean }>) =>
+      request<CheckpointResult>('api/checkpoint', { method: 'POST', body: JSON.stringify({ child_id: childId, skill_slug: skill, answers }) }),
+  },
+
+  // ── The child's learning path (skills, unlocked or not, with mastery) ──
+  path: {
+    get: (childId: number) => request<LearningPath>(`api/path?child_id=${childId}`),
+  },
+
+  // ── Mastery + what to learn next (rule-based, no AI) ──
+  recommend: {
+    get: (childId: number) => request<Recommendation>(`api/recommend?child_id=${childId}`),
+  },
+
   // ── Videos ────────────────────────────────────────────
   videos: {
     list: (params?: { age_group?: string; subject_id?: number }) => {
@@ -138,6 +172,9 @@ export const api = {
       return request<Video[]>(`api/videos${qs ? '?' + qs : ''}`, {}, false)
     },
     get: (id: number) => request<Video>(`api/videos?id=${id}`, {}, false),
+    // Counted in the admin view numbers; never blocks the page
+    view: (videoId: number, childId?: number) =>
+      request<{ ok: boolean }>('api/video_view', { method: 'POST', body: JSON.stringify({ video_id: videoId, child_id: childId }) }, !!childId).catch(() => null),
     upload: (formData: FormData) => {
       const token = getToken()
       return fetch(`${BASE}/api/upload.php`, {
@@ -169,6 +206,8 @@ export interface User {
   email: string
   name: string
   role: string
+  is_premium?: boolean
+  premium_until?: string | null
 }
 
 export interface Child {
@@ -237,6 +276,77 @@ export interface LessonProgress {
   score: number
   xp_earned: number
   completed_at?: string
+  /** Present on a "completed" save: the child's updated numbers and any badges just unlocked */
+  profile?: ChildProfile | null
+  new_achievements?: Array<{ slug: string; title: string; icon: string; xp_bonus: number }>
+}
+
+export interface Plans {
+  plans: Array<{ id: 'monthly' | 'yearly'; name: string; days: number; espees: number; ngn: number }>
+  rate: number
+  gateways: { espees: boolean; kingspay: boolean }
+  free_hearts: number
+  premium: boolean
+  premium_until: string | null
+}
+
+export interface SubscriptionStatus {
+  premium: boolean
+  premium_until: string | null
+  history: Array<{ plan: string; gateway: string; amount: number; currency: string; status: string; starts_at: string | null; expires_at: string | null; created_at: string; note: string | null }>
+}
+
+export type PlanReason = 'new' | 'continue' | 'review' | 'retry' | 'challenge' | 'checkpoint'
+
+export interface LessonPlan {
+  items: Activity[]
+  reserve: Activity[]
+  reason: PlanReason
+  target_tier: number
+  mastery?: number
+  skill_slug?: string
+  adaptive: boolean
+}
+
+export interface CheckpointSet {
+  skill: { slug: string; name: string }
+  items: Activity[]
+  pass_mark: number
+  already_passed: boolean
+  best: number
+}
+
+export interface CheckpointResult {
+  passed: boolean; correct: number; total: number; percent: number; pass_mark: number
+  best: number; bonus_xp: number; missed: number[]; status: string; profile: ChildProfile | null
+}
+
+export type SkillState = 'locked' | 'available' | 'learning' | 'practicing' | 'mastered'
+
+export interface LearningPath {
+  child_id: number
+  subjects: Array<{
+    slug: string
+    name: string
+    skills: Array<{
+      slug: string; name: string; strand: string; age_group: string
+      state: SkillState; mastery: number | null; review_due: boolean; prerequisites: string[]
+      /** 'ready' = practised enough to take the checkpoint, 'passed' = verified */
+      checkpoint?: 'not_yet' | 'ready' | 'passed'; checkpoint_best?: number
+      lessons: Array<{ id: number; title: string; level: number; status: 'not_started' | 'in_progress' | 'completed'; score: number | null }>
+    }>
+  }>
+}
+
+export interface Recommendation {
+  child_id: number
+  mastery: Array<{ subject_id: number; subject_name: string; slug: string; completed: number; total: number; avg_score: number | null; level: 'new' | 'weak' | 'ok' | 'strong' }>
+  recommended: Array<{ lesson_id: number; title: string; subject_name: string; subject_slug: string; reason: PlanReason | 'resume' | 'next'; message: string; skill_slug?: string }>
+  weak: string[]
+  strong: string[]
+  /** Skill-level numbers from the adaptive engine (null until the curriculum is loaded) */
+  engine?: { skills_started: number; skills_mastered: number; skills_total: number; weak_skills: string[]; due_reviews: string[]; active_days_14: number; ready_for_checkpoint: string[] } | null
+  summary: import('./coachTemplates').CoachSummary
 }
 
 export interface Video {

@@ -51,7 +51,7 @@ export function RouteProgress() {
       style={{ opacity: visible ? 1 : 0, transition: 'opacity 200ms' }}
     >
       <div
-        className="h-full bg-gradient-to-r from-[#4ade80] to-[#22d3ee] rounded-r-full"
+        className="h-full bg-[#facc15] rounded-r-full"
         style={{ width: `${pct}%`, transition: pct === 100 ? 'width 200ms ease-out' : 'width 400ms ease-in-out' }}
       />
       {/* glow dot at the tip */}

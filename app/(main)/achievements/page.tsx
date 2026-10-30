@@ -1,62 +1,120 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Trophy } from 'lucide-react'
+import { Trophy, Star, Sparkles } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { Achievement } from '@/lib/api'
 import { useAppStore } from '@/store/useAppStore'
 import { BadgeCard } from '@/components/gamification/BadgeCard'
-import { PageWrapper } from '@/components/layout/PageWrapper'
+import { useRefetchOnFocus } from '@/hooks/useRefetchOnFocus'
 import { Pip } from '@/components/mascot/Pip'
-import { SpeechBubble } from '@/components/mascot/SpeechBubble'
 import { Spinner } from '@/components/ui/Spinner'
+import { ScallopRibbon } from '@/components/home/ScallopRibbon'
 
 export default function AchievementsPage() {
   const { child } = useAppStore()
   const [achievements, setAchievements] = useState<Achievement[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     const childId = child?.id ? Number(child.id) : undefined
     api.achievements.list(childId).then(data => {
       setAchievements(data)
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [child])
+  }, [child?.id])
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size={40} /></div>
+  useEffect(() => { load() }, [load])
+  useRefetchOnFocus(load)
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[60vh] bg-[#201c4d]">
+      <Spinner size={44} />
+    </div>
+  )
 
   const unlockedCount = achievements.filter(a => a.unlocked).length
 
   return (
-    <PageWrapper>
-      <div className="flex items-end gap-4 mb-8">
-        <Pip size="md" mood={unlockedCount > 0 ? 'excited' : 'happy'} animate="idle" />
-        <SpeechBubble text={unlockedCount > 0 ? `You have earned ${unlockedCount} badges! Keep going!` : 'Earn badges by completing lessons and streaks!'} />
-      </div>
+    <div className="w-full flex flex-col">
+      {/* ── Top Hero Header (Matching Landing Page) ───────────────── */}
+      <section className="bg-[#201c4d] text-white pt-8 pb-10 px-4 sm:px-6 relative overflow-hidden">
+        {/* Soft Purple Cloud Puffs */}
+        <div className="absolute top-4 left-10 w-32 h-16 bg-[#2e2968] rounded-full pointer-events-none opacity-80" />
+        <div className="absolute top-2 right-14 w-40 h-20 bg-[#2e2968] rounded-full pointer-events-none opacity-75 hidden sm:block" />
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-extrabold text-white font-nunito">Achievements</h1>
-        <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-4 py-2">
-          <Trophy size={16} className="text-yellow-400" />
-          <span className="text-yellow-400 font-bold font-nunito text-sm">
-            {unlockedCount} / {achievements.length}
-          </span>
+        <div className="max-w-7xl mx-auto relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 bg-[#171439]/90 border border-white/15 rounded-full px-4 py-1.5 text-xs font-black text-purple-200 shadow-sm">
+              <Sparkles size={14} className="text-[#facc15]" />
+              <span>Pip&apos;s Hall of Fame</span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+              Trophy <span className="text-[#facc15]">Room</span> 🏆
+            </h1>
+            <p className="text-purple-100 font-bold text-sm sm:text-base max-w-xl">
+              Celebrate your victories! Earn stars, level badges, and secret rewards with every challenge!
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 bg-[#171439]/90 border border-white/15 px-5 py-3 rounded-2xl shadow-lg">
+            <Trophy size={24} className="text-[#facc15]" />
+            <div>
+              <p className="text-[10px] uppercase font-black tracking-wider text-purple-200">Badges Unlocked</p>
+              <p className="text-xl font-black text-[#facc15] font-nunito leading-tight">
+                {unlockedCount} <span className="text-sm text-purple-200 font-bold">/ {achievements.length}</span>
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {achievements.map((a, i) => (
-          <motion.div
-            key={a.id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.04 }}
-          >
-            <BadgeCard achievement={{ id: String(a.id), slug: a.slug, title: a.title, description: a.description, icon: a.icon, xp_bonus: a.xp_bonus, unlocked: a.unlocked }} />
-          </motion.div>
-        ))}
+      {/* Scallop Wave Transition into Warm Canvas */}
+      <ScallopRibbon topBg="#201c4d" bottomBg="#fffdf8" variant="scallop" />
+
+      {/* Main Achievements Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 w-full space-y-8">
+        
+        {/* Pip Encouragement Card */}
+        <div className="bg-white rounded-3xl p-6 border-2 border-slate-200 border-b-[5px] shadow-sm flex flex-col sm:flex-row items-center gap-6">
+          <Pip size="lg" mood={unlockedCount > 0 ? 'excited' : 'happy'} animate="idle" />
+          <div className="text-center sm:text-left flex-1">
+            <h3 className="text-slate-900 font-black text-xl mb-1">
+              {unlockedCount > 0 ? `Amazing work, ${child?.name || 'friend'}!` : 'Ready to start collecting?'}
+            </h3>
+            <p className="text-slate-600 font-bold text-sm">
+              {unlockedCount > 0
+                ? `You have already collected ${unlockedCount} shiny badges. Keep learning to complete your showcase!`
+                : 'Complete interactive lessons, maintain streaks, and speak answers aloud to unlock your first badge!'}
+            </p>
+          </div>
+        </div>
+
+        {/* Badge Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+          {achievements.map((a, i) => (
+            <motion.div
+              key={a.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.04 }}
+            >
+              <BadgeCard
+                achievement={{
+                  id: String(a.id),
+                  slug: a.slug,
+                  title: a.title,
+                  description: a.description,
+                  icon: a.icon,
+                  xp_bonus: a.xp_bonus,
+                  unlocked: a.unlocked,
+                }}
+              />
+            </motion.div>
+          ))}
+        </div>
+
       </div>
-    </PageWrapper>
+    </div>
   )
 }

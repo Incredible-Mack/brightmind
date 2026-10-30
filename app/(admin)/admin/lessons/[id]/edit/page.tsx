@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Save, ListOrdered } from 'lucide-react'
-import { adminApi, AdminLesson, AdminSubject } from '@/lib/adminApi'
+import { adminApi, AdminLesson, AdminSubject, AdminSkill } from '@/lib/adminApi'
 import { Spinner } from '@/components/ui/Spinner'
 
 const AGE_GROUPS   = ['0-5', '6-8', '9-11', '12-14']
@@ -19,6 +19,7 @@ export default function EditLessonPage() {
   const router  = useRouter()
   const [lesson,   setLesson]   = useState<AdminLesson | null>(null)
   const [subjects, setSubjects] = useState<AdminSubject[]>([])
+  const [skills,   setSkills]   = useState<AdminSkill[]>([])
   const [saving,   setSaving]   = useState(false)
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState('')
@@ -28,6 +29,7 @@ export default function EditLessonPage() {
       .then(([l, ss]) => { setLesson(l); setSubjects(ss) })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
+    adminApi.skills.coverage().then(c => setSkills(c.skills)).catch(() => {})
   }, [id])
 
   const toggleAge = (ag: string) => {
@@ -50,6 +52,8 @@ export default function EditLessonPage() {
         difficulty:  lesson.difficulty,
         xp_reward:   lesson.xp_reward,
         order_index: lesson.order_index,
+        skill_slug:  lesson.skill_slug ?? null,
+        level:       lesson.level ?? 1,
       })
       router.push('/admin/lessons')
     } catch (e) {
@@ -167,6 +171,31 @@ export default function EditLessonPage() {
               value={lesson.order_index}
               onChange={e => setLesson({ ...lesson, order_index: Number(e.target.value) })}
             />
+          </div>
+        </div>
+
+        {/* The skill this lesson teaches: lets the adaptive engine learn from it and recommend it */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2">
+            <label className="block text-slate-400 font-nunito text-xs uppercase tracking-wider mb-1.5">Skill taught</label>
+            <select
+              className="w-full bg-[#252b3b] border border-white/10 rounded-xl px-3 py-3 text-white font-nunito text-sm outline-none"
+              value={lesson.skill_slug ?? ''}
+              onChange={e => setLesson({ ...lesson, skill_slug: e.target.value || null })}
+            >
+              <option value="">None (plain lesson, not adaptive)</option>
+              {skills.map(s => <option key={s.slug} value={s.slug}>{s.subject_name} · {s.name} ({s.age_group})</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-slate-400 font-nunito text-xs uppercase tracking-wider mb-1.5">Level in skill</label>
+            <select
+              className="w-full bg-[#252b3b] border border-white/10 rounded-xl px-3 py-3 text-white font-nunito text-sm outline-none"
+              value={lesson.level ?? 1}
+              onChange={e => setLesson({ ...lesson, level: Number(e.target.value) })}
+            >
+              <option value={1}>1 · First</option><option value={2}>2 · Next</option><option value={3}>3 · Advanced</option>
+            </select>
           </div>
         </div>
 

@@ -1,13 +1,21 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, BookOpen, Layers, Film, ChevronRight, ExternalLink, Sparkles } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Layers, Film, ChevronRight, ExternalLink, Sparkles, Shuffle, Activity, Users, Trophy, Target, GraduationCap, CreditCard, Image as ImageIcon } from 'lucide-react'
 
 const NAV = [
-  { href: '/admin',          icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/admin/lessons',  icon: BookOpen,         label: 'Lessons & Activities' },
-  { href: '/admin/videos',   icon: Film,             label: 'Videos' },
-  { href: '/admin/subjects', icon: Layers,           label: 'Subjects' },
+  { href: '/admin',              icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/admin/monitor',      icon: Activity,        label: 'Activity & Monitor' },
+  { href: '/admin/users',        icon: Users,           label: 'Users & Children' },
+  { href: '/admin/curriculum',   icon: GraduationCap,   label: 'Course Review' },
+  { href: '/admin/lessons',      icon: BookOpen,        label: 'Lessons & Activities' },
+  { href: '/admin/skills',       icon: Target,          label: 'Curriculum Coverage' },
+  { href: '/admin/variants',     icon: Shuffle,         label: 'AI Variants' },
+  { href: '/admin/images',      icon: ImageIcon,       label: 'Images' },
+  { href: '/admin/videos',       icon: Film,            label: 'Videos' },
+  { href: '/admin/billing',      icon: CreditCard,      label: 'Plans & Billing' },
+  { href: '/admin/achievements', icon: Trophy,          label: 'Badges' },
+  { href: '/admin/subjects',     icon: Layers,          label: 'Subjects' },
 ]
 
 export function AdminSidebar() {
@@ -22,7 +30,7 @@ export function AdminSidebar() {
             <Sparkles size={16} className="text-[#0f1117]" />
           </div>
           <div>
-            <p className="text-white font-extrabold font-nunito text-sm leading-none">BrightMind</p>
+            <p className="text-white font-extrabold font-nunito text-sm leading-none">Bright Steps</p>
             <p className="text-[#4ade80] font-bold font-nunito text-[10px] uppercase tracking-widest">Admin Panel</p>
           </div>
         </div>

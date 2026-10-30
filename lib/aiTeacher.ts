@@ -1,5 +1,6 @@
 import type { ActivityType } from '@/types/activity'
 import type { AgeGroup } from '@/types/child'
+import { MODELS, aiEnabled, takeAiBudget } from './aiConfig'
 import {
   fallbackNarrate,
   fallbackGradeSpeech,
@@ -16,10 +17,11 @@ const STATIC = {
 }
 
 async function callClaude(prompt: string, maxTokens: number, temperature: number): Promise<string> {
+  if (!takeAiBudget()) throw new Error('AI hourly budget used up')
   const Anthropic = (await import('@anthropic-ai/sdk')).default
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const msg = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: MODELS.runtime,
     max_tokens: maxTokens,
     temperature,
     messages: [{ role: 'user', content: prompt }],
@@ -30,9 +32,11 @@ async function callClaude(prompt: string, maxTokens: number, temperature: number
 }
 
 function tier1Available(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY)
+  return aiEnabled()
 }
 
+// Narration is the most frequent call (once per card), so it never hits the model:
+// the template pool is free, instant and varied enough.
 export async function aiNarrate(params: {
   lessonId: string
   activityType: ActivityType
@@ -40,32 +44,14 @@ export async function aiNarrate(params: {
   childName: string
   ageGroup: AgeGroup
 }): Promise<{ speech: string; tier: 1 | 2 | 3 }> {
-  if (tier1Available()) {
-    try {
-      const prompt = `You are Pip, a friendly AI teacher for children aged ${params.ageGroup}.
-Introduce the following ${params.activityType} activity to ${params.childName} in ONE encouraging sentence (max 20 words).
-Activity content: "${params.content}"
-Be warm, simple, and age-appropriate. No emojis.`
-      const speech = await Promise.race([
-        callClaude(prompt, 150, 0.7),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000)),
-      ])
-      console.info('[AITeacher] tier=1 route=narrate')
-      return { speech, tier: 1 }
-    } catch (e) {
-      console.info('[AITeacher] tier=1 failed, falling back to tier=2', e)
-    }
-  }
   try {
     const speech = fallbackNarrate({
       activityType: params.activityType,
       ageGroup: params.ageGroup,
       childName: params.childName,
     })
-    console.info('[AITeacher] tier=2 route=narrate')
     return { speech, tier: 2 }
-  } catch (e) {
-    console.info('[AITeacher] tier=2 failed, falling back to tier=3', e)
+  } catch {
     return { speech: STATIC.narrate, tier: 3 }
   }
 }
@@ -144,36 +130,20 @@ Give ONE short hint (max 15 words) that guides without giving away the answer. N
   }
 }
 
+// Lesson-complete messages are templates too; the personal touch comes from /api/ai/coach (cached).
 export async function aiCelebrate(params: {
   lessonTitle: string
   xpEarned: number
   childName: string
 }): Promise<{ message: string; tier: 1 | 2 | 3 }> {
-  if (tier1Available()) {
-    try {
-      const prompt = `Celebrate a child completing a lesson!
-Child: ${params.childName}, Lesson: "${params.lessonTitle}", XP earned: ${params.xpEarned}
-Write ONE enthusiastic celebration message (max 20 words). No emojis.`
-      const message = await Promise.race([
-        callClaude(prompt, 150, 0.7),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000)),
-      ])
-      console.info('[AITeacher] tier=1 route=celebrate')
-      return { message, tier: 1 }
-    } catch (e) {
-      console.info('[AITeacher] tier=1 failed, falling back to tier=2', e)
-    }
-  }
   try {
     const message = fallbackCelebrate({
       childName: params.childName,
       lessonTitle: params.lessonTitle,
       xpEarned: params.xpEarned,
     })
-    console.info('[AITeacher] tier=2 route=celebrate')
     return { message, tier: 2 }
-  } catch (e) {
-    console.info('[AITeacher] tier=2 failed, falling back to tier=3', e)
+  } catch {
     return { message: STATIC.celebrate, tier: 3 }
   }
 }

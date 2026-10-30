@@ -1,4 +1,4 @@
-import { Calculator, BookOpen, FlaskConical, Globe } from 'lucide-react'
+import { Calculator, BookOpen, FlaskConical, Globe, HeartHandshake, Palette } from 'lucide-react'
 import type { SubjectSlug } from '@/types/lesson'
 
 interface SubjectIconProps { slug: SubjectSlug; size?: number; className?: string }
@@ -8,6 +8,8 @@ const icons: Record<SubjectSlug, React.ReactNode> = {
   'english':        <BookOpen />,
   'science':        <FlaskConical />,
   'social-studies': <Globe />,
+  'life-skills':    <HeartHandshake />,
+  'creative-arts':  <Palette />,
 }
 
 const colors: Record<SubjectSlug, string> = {
@@ -15,6 +17,8 @@ const colors: Record<SubjectSlug, string> = {
   'english':        '#a855f7',
   'science':        '#14b8a6',
   'social-studies': '#f97316',
+  'life-skills':    '#22c55e',
+  'creative-arts':  '#ec4899',
 }
 
 export function SubjectIcon({ slug, size = 24, className = '' }: SubjectIconProps) {

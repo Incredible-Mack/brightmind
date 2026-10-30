@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { PlayCircle, Clock } from 'lucide-react'
+import { Play, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import type { Video } from '@/types/video'
 
@@ -24,41 +24,49 @@ export function VideoCard({ video, index = 0 }: VideoCardProps) {
       transition={{ delay: index * 0.05, duration: 0.3 }}
     >
       <Link href={`/videos/${video.id}`}>
-        <div className="bg-[#252b3b] rounded-2xl border border-white/5 hover:border-white/20 overflow-hidden group transition-all hover:-translate-y-0.5">
-          <div className="relative aspect-video bg-[#1a1f2e]">
+        <div className="bg-white rounded-3xl border-2 border-slate-200 border-b-[6px] border-b-slate-300 shadow-sm hover:shadow-xl hover:border-amber-400 hover:border-b-amber-500 overflow-hidden group transition-all hover:-translate-y-1.5 flex flex-col justify-between">
+          <div className="relative aspect-video bg-[#1d2445] overflow-hidden">
             {video.thumbnail_url ? (
               <Image
-                src={video.thumbnail_url}
+                src={video.thumbnail_url.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_URL ?? ''}${video.thumbnail_url}` : video.thumbnail_url}
                 alt={video.title}
                 fill
-                className="object-cover"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
                 unoptimized
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <PlayCircle size={48} className="text-slate-600" />
+              <div className="absolute inset-0 flex items-center justify-center bg-[#201c4d]">
+                <div className="w-16 h-16 rounded-full bg-white/15 border-2 border-white/30 flex items-center justify-center">
+                  <Play size={28} className="text-[#facc15] ml-1" fill="#facc15" />
+                </div>
               </div>
             )}
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <div className="w-14 h-14 rounded-full bg-[#4ade80]/90 flex items-center justify-center">
-                <PlayCircle size={32} className="text-[#1a1f2e]" />
+            
+            {/* Hover overlay with playful bouncing play icon */}
+            <div className="absolute inset-0 bg-[#201c4d]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-xs">
+              <div className="w-16 h-16 rounded-full bg-[#facc15] text-[#201c4d] shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                <Play size={28} fill="#201c4d" className="ml-1" />
               </div>
             </div>
+
             {duration && (
-              <div className="absolute bottom-2 right-2 bg-black/70 rounded-lg px-2 py-0.5 flex items-center gap-1">
-                <Clock size={10} className="text-white" />
-                <span className="text-white text-xs font-nunito">{duration}</span>
+              <div className="absolute bottom-3 right-3 bg-slate-900/80 backdrop-blur-xs rounded-xl px-2.5 py-1 flex items-center gap-1.5 shadow-sm border border-white/20">
+                <Clock size={11} className="text-[#facc15]" />
+                <span className="text-white text-xs font-black font-nunito">{duration}</span>
               </div>
             )}
           </div>
-          <div className="p-4">
-            <h3 className="text-white font-bold text-sm font-nunito line-clamp-2 group-hover:text-[#4ade80] transition-colors">
+
+          <div className="p-5 flex flex-col justify-between flex-1">
+            <h3 className="text-slate-900 font-black text-base font-nunito line-clamp-2 group-hover:text-amber-600 transition-colors mb-3">
               {video.title}
             </h3>
             {video.age_groups?.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100">
                 {video.age_groups.map(ag => (
-                  <Badge key={ag} color="teal" size="sm">Ages {ag}</Badge>
+                  <Badge key={ag} color="purple" size="sm">
+                    Ages {ag}
+                  </Badge>
                 ))}
               </div>
             )}

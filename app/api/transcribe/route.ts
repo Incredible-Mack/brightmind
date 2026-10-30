@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { transcribeAudio } from '@/lib/whisper'
 
+// The page asks this once to learn whether voice answers can be marked in browsers without built-in speech recognition
+export async function GET() {
+  return NextResponse.json({ available: Boolean(process.env.OPENAI_API_KEY) })
+}
+
 export async function POST(req: NextRequest) {
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'Whisper not configured' }, { status: 503 })

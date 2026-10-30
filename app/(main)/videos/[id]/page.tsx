@@ -9,11 +9,13 @@ import type { Video } from '@/types/video'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Spinner } from '@/components/ui/Spinner'
 import { Badge } from '@/components/ui/Badge'
+import { useAppStore } from '@/store/useAppStore'
 
 export default function VideoDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [video, setVideo] = useState<Video | null>(null as Video | null)
   const [loading, setLoading] = useState(true)
+  const childId = useAppStore(s => s.child?.id)
 
   useEffect(() => {
     api.videos.get(Number(id)).then(data => {
@@ -21,6 +23,8 @@ export default function VideoDetailPage() {
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [id])
+
+  useEffect(() => { api.videos.view(Number(id), childId ? Number(childId) : undefined) }, [id, childId])
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size={40} /></div>
   if (!video) return <div className="text-center py-16 text-slate-400">Video not found.</div>

@@ -39,7 +39,7 @@ export function DragDropActivity({ content, onComplete }: DragDropActivityProps)
             dragSnapToOrigin
             onDragStart={() => setDragItem(item)}
             whileDrag={{ scale: 1.1, opacity: 0.9 }}
-            className="bg-[#252b3b] border-2 border-[#4ade80]/40 rounded-xl px-5 py-3 text-white font-bold font-nunito cursor-grab active:cursor-grabbing"
+            className="bg-white shadow-md border-2 border-[#4ade80]/40 rounded-xl px-5 py-3 text-[#1d2445] font-black font-nunito cursor-grab active:cursor-grabbing"
           >
             {item}
           </motion.button>
@@ -59,12 +59,12 @@ export function DragDropActivity({ content, onComplete }: DragDropActivityProps)
               onDragOver={e => e.preventDefault()}
               onDrop={() => handleDrop(pair.id)}
             >
-              <div className="flex-1 text-slate-300 font-nunito text-sm text-right pr-2">{pair.target}</div>
+              <div className="flex-1 text-[#1d2445] font-black font-nunito text-sm text-right pr-2">{pair.target}</div>
               <div className={`w-32 h-12 rounded-xl border-2 flex items-center justify-center font-bold font-nunito text-sm transition-colors ${
                 correct ? 'border-[#22c55e] bg-[#22c55e]/20 text-[#4ade80]'
                 : wrong ? 'border-red-500 bg-red-500/20 text-red-400'
-                : assigned ? 'border-[#4ade80]/40 bg-[#252b3b] text-white'
-                : 'border-dashed border-white/20 text-slate-600'
+                : assigned ? 'border-[#4ade80]/40 bg-white shadow-md text-white'
+                : 'border-dashed border-slate-300 text-slate-400'
               }`}>
                 {assigned ?? '—'}
               </div>
@@ -76,7 +76,7 @@ export function DragDropActivity({ content, onComplete }: DragDropActivityProps)
       {!submitted && Object.keys(assignments).length === pairs.length && (
         <button
           onClick={handleSubmit}
-          className="bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold font-nunito rounded-2xl py-3 px-8 transition-colors"
+          className="bg-[#22c55e] hover:bg-[#16a34a] text-[#1d2445] font-black font-nunito rounded-2xl py-3 px-8 transition-colors"
         >
           Check Answers
         </button>

@@ -2,9 +2,9 @@
 import { motion } from 'framer-motion'
 
 export type PipMood = 'happy' | 'thinking' | 'excited' | 'sad' | 'listening'
-export type PipSize = 'sm' | 'md' | 'lg' | 'xl'
+export type PipSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'hero'
 
-const sizeMap: Record<PipSize, number> = { sm: 64, md: 96, lg: 128, xl: 160 }
+const sizeMap: Record<PipSize, number> = { sm: 64, md: 96, lg: 128, xl: 160, '2xl': 220, hero: 280 }
 
 const idleAnim = {
   y: [0, -6, 0],
@@ -48,10 +48,10 @@ export function Pip({ size = 'md', mood = 'happy', animate = 'idle', className =
       animate={anim as any}
     >
       <svg viewBox="0 0 100 120" width={px} height={px} xmlns="http://www.w3.org/2000/svg">
-        {/* Body */}
-        <ellipse cx="50" cy="55" rx="42" ry="44" fill="#4ade80" />
+        {/* Body - Cheerful Sunshine Yellow Chick */}
+        <ellipse cx="50" cy="55" rx="42" ry="44" fill="#facc15" stroke="#f59e0b" strokeWidth="2" />
         {/* Shine */}
-        <ellipse cx="36" cy="36" rx="10" ry="7" fill="white" opacity="0.25" transform="rotate(-20 36 36)" />
+        <ellipse cx="36" cy="36" rx="10" ry="7" fill="white" opacity="0.4" transform="rotate(-20 36 36)" />
 
         {/* Left eye */}
         <ellipse cx="35" cy="48" rx="10" ry={eyeSquint ? 8 : eyeHalf ? 5 : eyeSad ? 7 : 9} fill="white" />
@@ -62,6 +62,10 @@ export function Pip({ size = 'md', mood = 'happy', animate = 'idle', className =
         <ellipse cx="65" cy="48" rx="10" ry={eyeSquint ? 8 : eyeHalf ? 5 : eyeSad ? 7 : 9} fill="white" />
         <circle cx="67" cy={eyeSad ? 50 : 48} r="5" fill="#1a1f2e" />
         <circle cx="69" cy={eyeSad ? 48 : 46} r="2" fill="white" />
+
+        {/* Rosy Cheeks */}
+        <ellipse cx="26" cy="56" rx="5" ry="3.5" fill="#f43f5e" opacity="0.45" />
+        <ellipse cx="74" cy="56" rx="5" ry="3.5" fill="#f43f5e" opacity="0.45" />
 
         {/* Thinking eyebrow */}
         {mood === 'thinking' && (
@@ -80,8 +84,8 @@ export function Pip({ size = 'md', mood = 'happy', animate = 'idle', className =
         {/* Listening antenna */}
         {mood === 'listening' && (
           <>
-            <circle cx="50" cy="10" r="5" fill="#4ade80" stroke="#22c55e" strokeWidth="2" />
-            <line x1="50" y1="15" x2="50" y2="22" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="50" cy="10" r="5" fill="#facc15" stroke="#f59e0b" strokeWidth="2" />
+            <line x1="50" y1="15" x2="50" y2="22" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
           </>
         )}
 

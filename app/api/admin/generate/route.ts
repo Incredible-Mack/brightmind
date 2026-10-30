@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { MODELS } from '@/lib/aiConfig'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     const schema = CONTENT_SCHEMAS[activityType] ?? CONTENT_SCHEMAS.listen
     const existing = existingContent ? `\nExisting activities already in this lesson:\n${JSON.stringify(existingContent, null, 2)}` : ''
 
-    const prompt = `You are a curriculum designer for BrightMind, an AI-powered educational platform for children.
+    const prompt = `You are a curriculum designer for Bright Steps, an AI-powered educational platform for children.
 
 Lesson: "${lessonTitle}"
 Subject: ${subject}
@@ -57,7 +58,7 @@ Example output format:
 ]`
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: MODELS.author,
       max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }],
     })
