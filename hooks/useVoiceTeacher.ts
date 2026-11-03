@@ -51,9 +51,12 @@ export function useVoiceTeacher(): UseVoiceTeacherReturn {
       )
       if (preferred) utt.voice = preferred
 
-      let started = false
-      let finished = false
-      const done = () => { if (finished) return; finished = true; clearTimeout(watchdog); setIsSpeaking(false); resolve() }
+      let started = false;
+      let finished = false;
+      const maxDuration = Math.max(4000, text.split(/\\s+/).length * 600 + 3500);
+      let maxTimer: ReturnType<typeof setTimeout> | null = null;
+      const done = () => { if (finished) return; finished = true; clearTimeout(watchdog); if (maxTimer) clearTimeout(maxTimer); setIsSpeaking(false); resolve(); };
+      maxTimer = setTimeout(done, maxDuration);
 
       // If nothing starts within a few seconds the browser has silently refused: say so, don't hang
       const watchdog = setTimeout(() => {

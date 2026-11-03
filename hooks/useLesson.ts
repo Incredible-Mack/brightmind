@@ -28,12 +28,15 @@ export function useLesson(lessonId: string, childId?: number | null, ctx?: Perso
       if (usePlan && childId) {
         try {
           const plan = await api.lessonPlan.get(Number(lessonId), childId)
-          items = plan.items as unknown as Activity[]
-          setReserve(fill(plan.reserve as unknown as Activity[]))
-          setReason(plan.reason)
+          // Only use plan items if the server actually returned some
+          if (plan.items && (plan.items as unknown[]).length > 0) {
+            items = plan.items as unknown as Activity[]
+            setReserve(fill(plan.reserve as unknown as Activity[]))
+            setReason(plan.reason)
+          }
         } catch { /* fall back below */ }
       }
-      if (!items) {
+      if (!items || items.length === 0) {
         items = (await api.activities.byLesson(Number(lessonId), childId ?? undefined)) as unknown as Activity[]
         setReserve([])
         setReason('new')

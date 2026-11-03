@@ -99,12 +99,13 @@ export default function LessonPlayPage() {
     interest: child?.learning_profile?.interests?.[0],
   }, true)
   // The run can change while the child plays (an easier or harder item slipped in), so it lives in state
-  const [activities, setQueue] = useState<PlanItem[]>([])
+  const [queueOverride, setQueueOverride] = useState<PlanItem[] | null>(null)
+  const activities = queueOverride ?? (planned as PlanItem[]) ?? []
   const reserveRef = useRef<PlanItem[]>([])
   const adaptRef = useRef<AdaptState>(initialAdaptState)
   const [notice, setNotice] = useState<string | null>(null)
   useEffect(() => {
-    setQueue(planned as PlanItem[])
+    setQueueOverride(null)
     reserveRef.current = plannedReserve as PlanItem[]
     adaptRef.current = initialAdaptState
   }, [planned, plannedReserve])
@@ -156,6 +157,7 @@ export default function LessonPlayPage() {
 
   // Bookkeeping that must not go stale inside async handlers
   const narrateIdRef = useRef(0)
+  const afterListenRef = useRef<() => void>(() => {})
   const totalXPRef = useRef(0)
   const scoresRef = useRef<number[]>([])
   const awardedRef = useRef<Set<string>>(new Set())
@@ -244,6 +246,7 @@ export default function LessonPlayPage() {
       setSayState(st => keep(st) ?? 'ask')
       await speak(say('askSay', name, ageGroup))
     }
+    afterListenRef.current = afterListen
 
     // Letter card: "E. E says eh, as in egg. Egg."
     if (act.type === 'listen' && isLetterContent(c)) {
@@ -283,11 +286,13 @@ export default function LessonPlayPage() {
       if (stale()) return
     }
     if (act.type === 'listen') {
-      if (c.number !== undefined) await speak(contentText)
-      else await speakWithHighlight(contentText)
-      if (stale()) return
-      await afterListen()
-      return
+      const safetyTimer = setTimeout(() => { if (!stale()) afterListen(); }, 5000);
+      if (c.number !== undefined) await speak(contentText);
+      else await speakWithHighlight(contentText);
+      clearTimeout(safetyTimer);
+      if (stale()) return;
+      await afterListen();
+      return;
     }
     // The question itself must be heard, not just the intro
     if (contentText) {
@@ -579,7 +584,7 @@ export default function LessonPlayPage() {
     adaptRef.current = adapted.state
     reserveRef.current = adapted.reserve
     setNotice(adapted.notice)
-    setQueue(adapted.queue)
+    setQueueOverride(adapted.queue)
     if (actIndex >= adapted.queue.length - 1) await finishLesson()
     else setActIndex(i => i + 1)
   }
@@ -590,14 +595,28 @@ export default function LessonPlayPage() {
     </div>
   )
 
+  if (!loading && lesson && activities.length === 0 && (!planned || planned.length === 0)) return (
+    <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] text-[#1d2445] flex flex-col items-center justify-center p-6 text-center">
+      <Pip size="xl" mood="sad" animate="idle" />
+      <h1 className="text-2xl font-extrabold text-[#1d2445] font-nunito mt-6 mb-2">Couldn&apos;t load the lesson</h1>
+      <p className="text-slate-500 font-nunito text-sm mb-8">Something went wrong fetching the activities. Check your connection and try again.</p>
+      <Button size="lg" onClick={() => load()}>Try Again</Button>
+      <button onClick={() => router.push(`/lessons/${id}`)} className="mt-4 text-slate-400 hover:text-[#1d2445] font-nunito text-sm">Back</button>
+    </div>
+  )
+
   if (!started && !completed && (premium || lives > 0)) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] text-[#1d2445] flex flex-col items-center justify-center p-6 text-center">
         <Pip size="xl" mood="excited" animate="idle" />
         <h1 className="text-3xl font-extrabold text-[#1d2445] font-nunito mt-6 mb-2">{lesson.title}</h1>
         <p className="text-slate-600 font-bold font-nunito mb-1">Turn your sound on. Pip will talk to you and listen to you.</p>
-        <p className="text-slate-500 font-nunito text-sm mb-8">{activities.length} activities</p>
-        <Button size="xl" onClick={() => { unlock(); setStarted(true) }}>Let&apos;s start! <ChevronRight size={22} /></Button>
+        <p className="text-slate-500 font-nunito text-sm mb-8">
+          {activities.length > 0 ? `${activities.length} activities` : 'Loading activities…'}
+        </p>
+        <Button size="xl" disabled={activities.length === 0} onClick={() => { unlock(); setStarted(true) }}>
+          {activities.length === 0 ? <><Spinner size={20} /> Loading…</> : <>Let&apos;s start! <ChevronRight size={22} /></>}
+        </Button>
         <button onClick={() => router.push(`/lessons/${id}`)} className="mt-5 text-slate-500 hover:text-[#1d2445] font-nunito text-sm">Back</button>
       </div>
     )
@@ -674,7 +693,11 @@ export default function LessonPlayPage() {
   }
 
   const act = currentActivity
-  if (!act) return null
+  if (!act) return (
+    <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] flex items-center justify-center">
+      <Spinner size={40} />
+    </div>
+  )
   const progress = ((actIndex) / activities.length) * 100
 
   return (
@@ -834,6 +857,11 @@ export default function LessonPlayPage() {
                       {!listenDone ? 'Listen first' : sayState === 'ask' ? 'Your turn first' : sayDone ? 'Next' : 'Finish this first'} <ChevronRight size={18} />
                     </Button>
                   </div>
+                  {(!listenDone || sayState === 'idle') && (
+                    <button type="button" onClick={() => afterListenRef.current()} className="text-xs text-slate-500 hover:text-[#1d2445] font-nunito font-bold underline mt-2 block mx-auto py-1">
+                      Skip audio / I&apos;m ready to practice
+                    </button>
+                  )}
                 </>
               )
 
