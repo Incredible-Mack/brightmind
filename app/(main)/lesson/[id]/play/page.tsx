@@ -71,11 +71,76 @@ interface TeachingData {
   identifyPrompt: string
   target: string
   options: Array<{ id: string; text: string; correct: boolean }>
+  equation?: string
+  operation?: 'add' | 'subtract'
+  leftNum?: number
+  rightNum?: number
+  sum?: number
+  leftObjects?: string[]
+  rightObjects?: string[]
 }
 
 function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
   const num = c.number !== undefined ? Number(c.number) : null
   const word = String(c.word ?? (num !== null ? String(num) : '')).trim()
+
+  // 1. Math Equation / Addition / Subtraction
+  const rawEquation = [c.equation, c.prompt, c.audio_hint, c.text].filter(Boolean).join(' ')
+  const eqMatch = rawEquation.match(/(\d+)\s*([\+\-−])\s*(\d+)\s*(?:=\s*(\d+))?/)
+  const isMathOperation = Boolean(c.equation || c.operation === 'add' || c.operation === 'subtract' || eqMatch)
+
+  if (isMathOperation) {
+    const isSub = c.operation === 'subtract' || Boolean(eqMatch && (eqMatch[2] === '-' || eqMatch[2] === '−'))
+    const leftNum = c.leftNum !== undefined ? Number(c.leftNum) : (eqMatch ? Number(eqMatch[1]) : 1)
+    const rightNum = c.rightNum !== undefined ? Number(c.rightNum) : (eqMatch ? Number(eqMatch[3]) : 1)
+    const sum = c.sum !== undefined
+      ? Number(c.sum)
+      : (eqMatch && eqMatch[4] ? Number(eqMatch[4]) : (isSub ? leftNum - rightNum : leftNum + rightNum))
+    const opSymbol = isSub ? '−' : '+'
+    const opWord = isSub ? 'minus' : 'plus'
+    const eqStr = `${leftNum} ${opSymbol} ${rightNum} = ${sum}`
+    const targetStr = String(sum)
+
+    const definition = String(c.definition ?? (isSub ? 'Taking away to find what is left' : 'Putting groups together to find the total'))
+    const example = String(c.example ?? `${leftNum} ${opWord} ${rightNum} equals ${sum}!`)
+    const actionPrompt = String(c.actionPrompt ?? (isSub ? `Count down to ${sum}!` : `Hold up your fingers! Count together: ${sum}! ✌️`))
+
+    const intro = isSub
+      ? `Subtraction! Subtraction means taking away from a group.`
+      : `Addition! Addition means putting groups together to find the total.`
+    const reveal = `This is ${sum}!`
+    const phrase1 = `${leftNum} ${opWord} ${rightNum} equals ${sum}! ${definition}. This is ${sum}!`
+    const phrase2 = `${example} ${actionPrompt}`
+    const identifyPrompt = `Now, identify ${sum} from the list below!`
+
+    const defaultOptNums = Array.from(new Set([Math.max(1, sum - 1), sum, sum + 1])).slice(0, 3)
+    const options = Array.isArray(c.options)
+      ? normalizeTapOptions({ options: c.options, correct: targetStr })
+      : defaultOptNums.map(n => ({ id: String(n), text: String(n), correct: n === sum }))
+
+    const leftObjects = Array.isArray(c.leftObjects) ? (c.leftObjects as string[]) : Array(Math.min(leftNum, 6)).fill('⚽')
+    const rightObjects = Array.isArray(c.rightObjects) ? (c.rightObjects as string[]) : Array(Math.min(rightNum, 6)).fill('⚽')
+
+    return {
+      intro,
+      reveal,
+      phrase1,
+      definition,
+      example,
+      actionPrompt,
+      phrase2,
+      identifyPrompt,
+      target: targetStr,
+      options,
+      equation: eqStr,
+      operation: isSub ? 'subtract' : 'add',
+      leftNum,
+      rightNum,
+      sum,
+      leftObjects,
+      rightObjects,
+    }
+  }
 
   if (num === 1) {
     return {
@@ -173,15 +238,18 @@ function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
   }
 
   const hint = String(c.audio_hint ?? c.prompt ?? c.text ?? 'Listen carefully!')
-  const targetStr = word || '1'
+  const targetStr = String(c.correct ?? c.expected ?? c.answer ?? (word || '1'))
+  const def = String(c.definition ?? 'A key learning concept')
+  const ex = String(c.example ?? hint)
+  const actP = String(c.actionPrompt ?? 'Listen carefully!')
   return {
     intro: hint,
     reveal: `This is ${targetStr}!`,
-    phrase1: hint,
-    definition: 'Concept',
-    example: hint,
-    actionPrompt: 'Listen carefully!',
-    phrase2: hint,
+    phrase1: `${hint} ${def}. This is ${targetStr}!`,
+    definition: def,
+    example: ex,
+    actionPrompt: actP,
+    phrase2: `${ex} ${actP}`,
     identifyPrompt: `Identify ${targetStr} from the list below!`,
     target: targetStr,
     options: [targetStr, '2', '3'].map(t => ({ id: t, text: t, correct: t === targetStr })),
@@ -434,10 +502,22 @@ export default function LessonPlayPage() {
     // Speaking Activity: Pip models first, then listens for child to talk back
     if (act.type === 'speak') {
       const numVal = c.number !== undefined ? Number(c.number) : null
-      const targetWord = String(c.word ?? c.prompt ?? c.expected ?? '').replace(/^say:?\s*/i, '').replace(/[!.]/g, '').trim()
-      const spokenLine = numVal !== null
-        ? `Say the number ${numVal} out loud!`
-        : `Say the word ${targetWord} out loud!`
+      const expNum = c.expected !== undefined && !isNaN(Number(c.expected))
+        ? Number(c.expected)
+        : (c.expected ? NUMBER_WORDS[String(c.expected).toLowerCase()] : null)
+      const targetNum = numVal !== null ? numVal : (expNum !== undefined ? expNum : null)
+      const isQuestion = typeof c.prompt === 'string' && (c.prompt.includes('?') || /^(what|how many|which)\b/i.test(c.prompt))
+
+      let spokenLine: string
+      if (isQuestion) {
+        spokenLine = `${String(c.prompt).trim()} Say the answer out loud!`
+      } else if (targetNum !== null) {
+        spokenLine = `Say the number ${targetNum} out loud!`
+      } else {
+        const targetWord = String(c.word ?? c.expected ?? c.prompt ?? '').replace(/^say:?\s*/i, '').replace(/[!.]/g, '').trim()
+        spokenLine = `Say the word ${targetWord} out loud!`
+      }
+
       setSpeech(spokenLine)
       setPipMood('happy')
       setPipAnim('idle')
@@ -1119,7 +1199,54 @@ export default function LessonPlayPage() {
                       </motion.div>
                     )}
 
-                    {num !== undefined && (
+                    {teach.equation ? (
+                      <div className="flex flex-col items-center my-1 select-none">
+                        <div className="flex items-center justify-center gap-2 sm:gap-3 text-4xl sm:text-5xl font-black text-white">
+                          <span className="text-white">{teach.leftNum}</span>
+                          <span className="text-[#58cc02]">{teach.operation === 'subtract' ? '−' : '+'}</span>
+                          <span className="text-white">{teach.rightNum}</span>
+                          <span className="text-slate-400">=</span>
+                          <motion.span
+                            animate={
+                              highlightNumber
+                                ? {
+                                    scale: [1, 1.4, 1.25],
+                                    filter: [
+                                      'drop-shadow(0 0 0px rgba(88,204,2,0))',
+                                      'drop-shadow(0 0 24px rgba(88,204,2,0.95))',
+                                      'drop-shadow(0 0 16px rgba(88,204,2,0.75))',
+                                    ],
+                                  }
+                                : { scale: 1, filter: 'drop-shadow(0 0 0px rgba(0,0,0,0))' }
+                            }
+                            transition={
+                              highlightNumber
+                                ? { duration: 0.65, ease: 'easeOut' }
+                                : { duration: 0.3 }
+                            }
+                            onClick={() => {
+                              setHighlightNumber(true)
+                              speak(teach.reveal)
+                              setTimeout(() => setHighlightNumber(false), 2500)
+                            }}
+                            className="text-5xl sm:text-6xl font-black text-[#58cc02] cursor-pointer inline-flex items-center relative"
+                            title={`Tap to hear: ${teach.reveal}`}
+                          >
+                            {teach.sum ?? teach.target}
+                            {highlightNumber && (
+                              <motion.span
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+                                transition={{ duration: 0.35 }}
+                                className="absolute -top-3 -right-5 text-2xl sm:text-3xl animate-bounce"
+                              >
+                                ✨
+                              </motion.span>
+                            )}
+                          </motion.span>
+                        </div>
+                      </div>
+                    ) : num !== undefined ? (
                       <>
                         <motion.div
                           animate={
@@ -1163,6 +1290,30 @@ export default function LessonPlayPage() {
                         </motion.div>
                         {word && <h3 className="text-xl sm:text-2xl font-black text-white capitalize leading-tight mb-1">{word}</h3>}
                       </>
+                    ) : (
+                      <motion.div
+                        animate={
+                          highlightNumber
+                            ? {
+                                scale: [1, 1.3, 1.2],
+                                filter: [
+                                  'drop-shadow(0 0 0px rgba(88,204,2,0))',
+                                  'drop-shadow(0 0 20px rgba(88,204,2,0.9))',
+                                ],
+                              }
+                            : { scale: 1, filter: 'drop-shadow(0 0 0px rgba(0,0,0,0))' }
+                        }
+                        className="relative inline-flex items-center justify-center my-1 cursor-pointer select-none"
+                        onClick={() => {
+                          setHighlightNumber(true)
+                          speak(teach.reveal)
+                          setTimeout(() => setHighlightNumber(false), 2500)
+                        }}
+                      >
+                        <span className="text-4xl sm:text-5xl font-black text-[#58cc02] leading-none select-none tracking-tight">
+                          {teach.target}
+                        </span>
+                      </motion.div>
                     )}
 
                     {/* Section 2: Concrete Object Example — animates in during phrase2, identify, completed */}
@@ -1176,7 +1327,27 @@ export default function LessonPlayPage() {
                           transition={{ type: 'spring', damping: 12, stiffness: 240 }}
                           className="w-full flex flex-col items-center gap-1 my-1 p-2 bg-white/5 rounded-2xl border border-white/10 shadow-inner"
                         >
-                          {img ? (
+                          {teach.leftObjects && teach.rightObjects ? (
+                            <div className="flex items-center justify-center gap-2 sm:gap-3 text-2xl sm:text-3xl my-0.5">
+                              <div className="flex gap-1">
+                                {teach.leftObjects.map((o, idx) => (
+                                  <span key={idx}>{o}</span>
+                                ))}
+                              </div>
+                              <span className="text-lg sm:text-xl font-black text-[#58cc02]">{teach.operation === 'subtract' ? '−' : '+'}</span>
+                              <div className="flex gap-1">
+                                {teach.rightObjects.map((o, idx) => (
+                                  <span key={idx}>{o}</span>
+                                ))}
+                              </div>
+                              <span className="text-lg sm:text-xl font-black text-slate-400">=</span>
+                              <div className="flex gap-1">
+                                {(objects ?? [...teach.leftObjects, ...teach.rightObjects]).map((o, idx) => (
+                                  <span key={idx}>{o}</span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : img ? (
                             <ActivityImage path={img} alt={word ?? ''} size="md" />
                           ) : objects ? (
                             <div className="flex flex-wrap gap-2.5 justify-center text-3xl sm:text-4xl my-0.5">
@@ -1394,17 +1565,27 @@ export default function LessonPlayPage() {
             {act.type === 'speak' && (() => {
               const c = act.content as unknown as Record<string, unknown>
               const num = c.number !== undefined ? Number(c.number) : null
-              const word = String(c.word ?? (num !== null ? String(num) : c.prompt ?? '')).trim()
-              const targetWord = word.replace(/^say:?\s*/i, '').replace(/[!.]/g, '')
+              const expNum = c.expected !== undefined && !isNaN(Number(c.expected))
+                ? Number(c.expected)
+                : (c.expected ? NUMBER_WORDS[String(c.expected).toLowerCase()] : null)
+              const targetNum = num !== null ? num : (expNum !== undefined ? expNum : null)
+              const isQuestion = typeof c.prompt === 'string' && (c.prompt.includes('?') || /^(what|how many|which)\b/i.test(c.prompt))
+
+              const expectedStr = String(c.expected ?? (targetNum !== null ? String(targetNum) : c.word ?? '')).toLowerCase().trim()
+              const targetWord = targetNum !== null
+                ? String(targetNum)
+                : String(c.word ?? c.expected ?? '').replace(/^say:?\s*/i, '').replace(/[!.]/g, '').trim()
               const objects = c.objects as string[] | undefined
+              const leftObjects = c.leftObjects as string[] | undefined
+              const rightObjects = c.rightObjects as string[] | undefined
+              const equation = c.equation as string | undefined
               const img = activityImage(c)
-              const expectedStr = String(c.expected ?? targetWord).toLowerCase().trim()
 
               const gradeSpokenAnswer = (transcript: string) => {
                 const normText = transcript.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim()
                 const words = normText.split(/\s+/).filter(Boolean)
 
-                if (num !== null) {
+                if (targetNum !== null) {
                   const NUMBER_ALTS: Record<number, string[]> = {
                     1: ['1', 'one', 'won', 'wan', 'on', 'juan', 'first', 'wun', 'when', 'run', 'un'],
                     2: [
@@ -1416,9 +1597,14 @@ export default function LessonPlayPage() {
                     3: ['3', 'three', 'tree', 'free', 'thee', 'tri', 'third', 'thre', 'threat', 'see', 'tea'],
                     4: ['4', 'four', 'for', 'fore', 'pour', 'ford', 'fourth', 'door', 'floor'],
                     5: ['5', 'five', 'hive', 'fi', 'fiv', 'fifth', 'fine'],
+                    6: ['6', 'six', 'sex', 'sick', 'sicks', 'sixth'],
+                    7: ['7', 'seven', 'sev', 'sevin', 'seventh'],
+                    8: ['8', 'eight', 'ate', 'ait', 'eighth', 'late', 'great'],
+                    9: ['9', 'nine', 'nien', 'ninth', 'line', 'mine'],
+                    10: ['10', 'ten', 'tin', 'tan', 'tenth'],
                   }
-                  const alts = NUMBER_ALTS[num] ?? [String(num)]
-                  const matched = words.some(w => alts.includes(w)) || alts.some(a => normText.includes(a)) || words.includes(String(num))
+                  const alts = NUMBER_ALTS[targetNum] ?? [String(targetNum)]
+                  const matched = words.some(w => alts.includes(w)) || alts.some(a => normText.includes(a)) || words.includes(String(targetNum))
                   if (matched) {
                     return { passed: true, score: 100, feedback: 'Super job! You said it!' }
                   }
@@ -1429,9 +1615,9 @@ export default function LessonPlayPage() {
               }
 
               // Fallback options if child prefers to tap instead of talking
-              const tapOptions = num !== null
-                ? ['1', '2', '3']
-                : [targetWord, '2', '3']
+              const tapOptions = targetNum !== null
+                ? Array.from(new Set([String(Math.max(1, targetNum - 1)), String(targetNum), String(targetNum + 1)])).slice(0, 3)
+                : (Array.isArray(c.options) ? (c.options as unknown[]).map(String) : [targetWord, '2', '3'])
 
               return (
                 <div className="w-full flex flex-col items-center gap-2 sm:gap-2.5">
@@ -1443,13 +1629,13 @@ export default function LessonPlayPage() {
                       transition={{ duration: 0.25 }}
                       className="text-xl sm:text-2xl font-black text-white leading-tight mb-1"
                     >
-                      {num !== null ? `Say the number ${num} out loud` : `Say the word "${targetWord}" out loud`}
+                      {isQuestion ? String(c.prompt) : (targetNum !== null ? `Say the number ${targetNum} out loud` : `Say the word "${targetWord}" out loud`)}
                     </motion.h2>
                   </div>
 
                   {/* Clean Hero Visual Card */}
                   <motion.div
-                    key={String(num ?? targetWord)}
+                    key={String(targetNum ?? targetWord)}
                     initial={{ scale: 0.95, opacity: 0, y: 12 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     transition={{ type: 'spring', damping: 18 }}
@@ -1458,20 +1644,42 @@ export default function LessonPlayPage() {
                     {/* Hear Pip again pill button */}
                     <button
                       type="button"
-                      onClick={() => speak(num !== null ? `Say the number ${num} out loud!` : `Say the word: ${targetWord}!`)}
+                      onClick={() => speak(isQuestion ? `${String(c.prompt)} Say the answer out loud!` : (targetNum !== null ? `Say the number ${targetNum} out loud!` : `Say the word: ${targetWord}!`))}
                       className="mb-1.5 px-3 py-1 bg-[#24333b] hover:bg-[#2c3d47] border-2 border-[#324550] border-b-4 border-b-[#1c2930] rounded-xl flex items-center gap-1.5 text-slate-200 font-black text-xs uppercase tracking-wider active:translate-y-0.5 cursor-pointer transition-all"
                     >
                       <Volume2 size={15} className="text-[#58cc02]" />
                       <span>Hear Pip Say It</span>
                     </button>
 
-                    {num !== null && (
+                    {equation ? (
+                      <div className="flex flex-col items-center my-1 select-none">
+                        <div className="text-3xl sm:text-4xl font-black text-white tracking-wide">
+                          {equation}
+                        </div>
+                      </div>
+                    ) : targetNum !== null && !isQuestion ? (
                       <span className="text-5xl sm:text-6xl font-black text-[#58cc02] leading-none mb-1 select-none">
-                        {num}
+                        {targetNum}
                       </span>
-                    )}
+                    ) : null}
 
-                    {img ? (
+                    {leftObjects && rightObjects ? (
+                      <div className="flex items-center justify-center gap-2 sm:gap-3 text-2xl sm:text-3xl my-1">
+                        <div className="flex gap-1">
+                          {leftObjects.map((o, idx) => (
+                            <span key={idx}>{o}</span>
+                          ))}
+                        </div>
+                        <span className="text-lg sm:text-xl font-black text-[#58cc02]">+</span>
+                        <div className="flex gap-1">
+                          {rightObjects.map((o, idx) => (
+                            <span key={idx}>{o}</span>
+                          ))}
+                        </div>
+                        <span className="text-lg sm:text-xl font-black text-slate-400">=</span>
+                        <span className="text-2xl sm:text-3xl font-black text-amber-300">?</span>
+                      </div>
+                    ) : img ? (
                       <ActivityImage path={img} alt={targetWord} size="md" />
                     ) : objects ? (
                       <div className="flex flex-wrap gap-2.5 justify-center text-3xl sm:text-4xl my-1">
@@ -1488,9 +1696,11 @@ export default function LessonPlayPage() {
                       </div>
                     ) : null}
 
-                    <div className="text-2xl sm:text-3xl font-black text-white mt-1">
-                      &ldquo;{targetWord}&rdquo;
-                    </div>
+                    {!isQuestion && (
+                      <div className="text-2xl sm:text-3xl font-black text-white mt-1">
+                        &ldquo;{targetWord}&rdquo;
+                      </div>
+                    )}
                   </motion.div>
 
                   {/* Interactive Speaking Panel or Tap Fallback — Animates in Last */}
@@ -1531,7 +1741,10 @@ export default function LessonPlayPage() {
                               <button
                                 key={opt}
                                 onClick={() => {
-                                  if (opt === String(num ?? targetWord) || opt.toLowerCase() === targetWord.toLowerCase()) {
+                                  const isMatch = (targetNum !== null && (opt === String(targetNum) || NUMBER_WORDS[opt.toLowerCase()] === targetNum)) ||
+                                    opt.toLowerCase() === expectedStr ||
+                                    opt.toLowerCase() === targetWord.toLowerCase()
+                                  if (isMatch) {
                                     handleCorrect(getXP(currentActivity))
                                   } else {
                                     handleWrong()

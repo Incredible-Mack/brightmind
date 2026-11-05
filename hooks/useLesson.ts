@@ -157,6 +157,185 @@ export const DEMO_ACTIVITIES: Activity[] = [
   },
 ]
 
+export const ADDITION_LESSON: Lesson = {
+  id: 5,
+  subject_id: 1,
+  subject_name: 'Maths Adventure',
+  title: 'Adding Up: Fun with Addition',
+  slug: 'math-addition-1',
+  description: 'Join Pip to explore addition! Put groups of soccer balls and shiny stars together, count on your fingers, and say your answers out loud!',
+  age_groups: ['0-5', '6-8'],
+  difficulty: 'easy',
+  xp_reward: 60,
+  activities_count: 9,
+  order_index: 5,
+}
+
+export const ADDITION_ACTIVITIES: Activity[] = [
+  {
+    id: 'add-1',
+    lesson_id: 5,
+    type: 'listen',
+    order_index: 1,
+    xp_reward: 5,
+    content: {
+      equation: '1 + 1 = 2',
+      leftNum: 1,
+      rightNum: 1,
+      sum: 2,
+      operation: 'add',
+      prompt: 'Addition means putting groups together to find the total. One plus one equals two!',
+      audio_hint: 'Addition means putting things together. One bouncy soccer ball plus one more soccer ball makes two soccer balls!',
+      definition: 'Putting groups together to find the total',
+      example: '1 bouncy soccer ball and 1 more soccer ball make 2 soccer balls!',
+      actionPrompt: 'Hold up 1 finger on each hand! ☝️ ☝️ Count them together: 1... 2!',
+      leftObjects: ['⚽'],
+      rightObjects: ['⚽'],
+      objects: ['⚽', '⚽'],
+    } as unknown as import('@/types/activity').ListenContent,
+  },
+  {
+    id: 'add-speak-1',
+    lesson_id: 5,
+    type: 'speak',
+    order_index: 2,
+    xp_reward: 10,
+    content: {
+      equation: '1 + 1 = ?',
+      prompt: 'What is one plus one?',
+      expected: 'two',
+      audio_hint: 'What is one plus one? Say the answer out loud!',
+      leftObjects: ['⚽'],
+      rightObjects: ['⚽'],
+      objects: ['⚽', '⚽'],
+    } as unknown as import('@/types/activity').SpeakContent,
+  },
+  {
+    id: 'add-tap-1',
+    lesson_id: 5,
+    type: 'tap_answer',
+    order_index: 3,
+    xp_reward: 5,
+    content: {
+      question: 'How many stars do you see in total? ⭐ + ⭐',
+      options: [
+        { id: '0', text: '1', correct: false },
+        { id: '1', text: '2', correct: true },
+        { id: '2', text: '3', correct: false },
+      ],
+      correct: '2',
+    } as unknown as import('@/types/activity').TapAnswerContent,
+  },
+  {
+    id: 'add-2',
+    lesson_id: 5,
+    type: 'listen',
+    order_index: 4,
+    xp_reward: 5,
+    content: {
+      equation: '2 + 1 = 3',
+      leftNum: 2,
+      rightNum: 1,
+      sum: 3,
+      operation: 'add',
+      prompt: 'Two plus one equals three! Two shiny stars and one more star make three stars.',
+      audio_hint: 'Two plus one equals three! Two shiny stars and one more star make three stars together!',
+      definition: 'Adding one more makes the number grow',
+      example: '2 shiny stars and 1 more star make 3 shiny stars!',
+      actionPrompt: 'Count on your fingers: 1, 2... and 1 more makes 3! 🤟',
+      leftObjects: ['⭐', '⭐'],
+      rightObjects: ['⭐'],
+      objects: ['⭐', '⭐', '⭐'],
+    } as unknown as import('@/types/activity').ListenContent,
+  },
+  {
+    id: 'add-speak-2',
+    lesson_id: 5,
+    type: 'speak',
+    order_index: 5,
+    xp_reward: 10,
+    content: {
+      equation: '2 + 1 = ?',
+      prompt: 'What is two plus one?',
+      expected: 'three',
+      audio_hint: 'What is two plus one? Say the answer out loud!',
+      leftObjects: ['⭐', '⭐'],
+      rightObjects: ['⭐'],
+      objects: ['⭐', '⭐', '⭐'],
+    } as unknown as import('@/types/activity').SpeakContent,
+  },
+  {
+    id: 'add-3',
+    lesson_id: 5,
+    type: 'listen',
+    order_index: 6,
+    xp_reward: 5,
+    content: {
+      equation: '2 + 2 = 4',
+      leftNum: 2,
+      rightNum: 2,
+      sum: 4,
+      operation: 'add',
+      prompt: 'Two plus two equals four! Two delicious apples and two more apples make four apples.',
+      audio_hint: 'Two plus two equals four! Two delicious apples and two more apples make four apples together!',
+      definition: 'Two pairs together make four',
+      example: '2 red apples and 2 more red apples make 4 red apples!',
+      actionPrompt: 'Hold up 2 fingers on each hand! ✌️ ✌️ Count all 4 fingers!',
+      leftObjects: ['🍎', '🍎'],
+      rightObjects: ['🍎', '🍎'],
+      objects: ['🍎', '🍎', '🍎', '🍎'],
+    } as unknown as import('@/types/activity').ListenContent,
+  },
+  {
+    id: 'add-speak-3',
+    lesson_id: 5,
+    type: 'speak',
+    order_index: 7,
+    xp_reward: 10,
+    content: {
+      equation: '2 + 2 = ?',
+      prompt: 'What is two plus two?',
+      expected: 'four',
+      audio_hint: 'What is two plus two? Say the answer out loud!',
+      leftObjects: ['🍎', '🍎'],
+      rightObjects: ['🍎', '🍎'],
+      objects: ['🍎', '🍎', '🍎', '🍎'],
+    } as unknown as import('@/types/activity').SpeakContent,
+  },
+  {
+    id: 'add-story-1',
+    lesson_id: 5,
+    type: 'tap_answer',
+    order_index: 8,
+    xp_reward: 5,
+    content: {
+      question: 'Tom has 3 sweets 🍬 and gets 2 more. How many sweets does Tom have in total?',
+      options: [
+        { id: '0', text: '4', correct: false },
+        { id: '1', text: '5', correct: true },
+        { id: '2', text: '6', correct: false },
+      ],
+      correct: '5',
+    } as unknown as import('@/types/activity').TapAnswerContent,
+  },
+  {
+    id: 'add-finale-1',
+    lesson_id: 5,
+    type: 'tap_answer',
+    order_index: 9,
+    xp_reward: 5,
+    content: {
+      question: 'What is 3 + 3 = ?',
+      options: [
+        { id: '0', text: '5', correct: false },
+        { id: '1', text: '6', correct: true },
+        { id: '2', text: '7', correct: false },
+      ],
+      correct: '6',
+    } as unknown as import('@/types/activity').TapAnswerContent,
+  },
+]
+
 // childId + usePlan: ask the adaptive engine for this child's run of the lesson
 export function useLesson(lessonId: string, childId?: number | null, ctx?: PersonalizeContext, usePlan = false) {
   const [lesson, setLesson] = useState<Lesson | null>(null)
@@ -175,6 +354,16 @@ export function useLesson(lessonId: string, childId?: number | null, ctx?: Perso
     if (lessonId === 'demo' || lessonId === '0') {
       setLesson(DEMO_LESSON)
       setActivities(fill(DEMO_ACTIVITIES))
+      setReserve([])
+      setReason('new')
+      setLoading(false)
+      return
+    }
+
+    // Instant addition lesson fallback
+    if (lessonId === '5' || String(lessonId).toLowerCase().includes('addition')) {
+      setLesson(ADDITION_LESSON)
+      setActivities(fill(ADDITION_ACTIVITIES))
       setReserve([])
       setReason('new')
       setLoading(false)
@@ -203,9 +392,14 @@ export function useLesson(lessonId: string, childId?: number | null, ctx?: Perso
       }
       setActivities(fill(items))
     } catch {
-      // Offline fallback: if server is unreachable, use DEMO lesson so learners are NEVER blocked!
-      setLesson(DEMO_LESSON)
-      setActivities(fill(DEMO_ACTIVITIES))
+      // Offline fallback: if server is unreachable, serve appropriate lesson so learners are NEVER blocked!
+      if (lessonId === '5' || String(lessonId).toLowerCase().includes('addition')) {
+        setLesson(ADDITION_LESSON)
+        setActivities(fill(ADDITION_ACTIVITIES))
+      } else {
+        setLesson(DEMO_LESSON)
+        setActivities(fill(DEMO_ACTIVITIES))
+      }
       setReserve([])
       setReason('new')
     } finally {
