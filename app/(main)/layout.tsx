@@ -1,9 +1,22 @@
+'use client'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { MainFooterTransition } from '@/components/layout/MainFooterTransition'
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isPlayPage = pathname?.includes('/play')
+
+  if (isPlayPage) {
+    return (
+      <div className="min-h-screen bg-[#131f24] text-white flex flex-col font-nunito selection:bg-emerald-400 selection:text-slate-900">
+        {children}
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#fffdf8] flex flex-col font-nunito selection:bg-amber-300 selection:text-slate-900">
       <Navbar />

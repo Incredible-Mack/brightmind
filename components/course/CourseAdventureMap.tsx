@@ -132,12 +132,8 @@ export function CourseAdventureMap({
         stars = 0
       }
 
-      // Default demo fallbacks if brand new student
+      // Station 1 is active by default for brand new student if no stations completed yet
       if (i === 0 && status === 'locked') {
-        status = 'completed'
-        stars = 3
-      }
-      if (i === 1 && status === 'locked' && !hasFoundActive) {
         status = 'active'
         hasFoundActive = true
       }
@@ -401,16 +397,25 @@ export function CourseAdventureMap({
             {/* Hearts Refill Modal */}
             <HeartsModal isOpen={heartsOpen} onClose={() => setHeartsOpen(false)} />
 
-            {/* Mobile-only Mystery Gift Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setGiftOpen(true)}
-              className="flex md:hidden items-center gap-1 px-3 py-1.5 rounded-xl bg-[#9333ea] hover:bg-[#7e22ce] text-white font-black font-nunito text-xs border-2 border-white/60 border-b-4 border-[#581c87] shadow-sm transition-all"
-            >
-              <Gift size={13} className="text-white animate-bounce" />
-              <span>Gift</span>
-            </motion.button>
+            {/* Mobile-only Action Buttons */}
+            <div className="flex md:hidden items-center gap-1.5">
+              <button
+                onClick={() => router.push('/demo')}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-black font-nunito text-xs border-2 border-white/60 border-b-4 border-[#047857] shadow-sm active:translate-y-0.5"
+              >
+                <Sparkles size={12} className="text-amber-300" />
+                <span>Demo</span>
+              </button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setGiftOpen(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#9333ea] hover:bg-[#7e22ce] text-white font-black font-nunito text-xs border-2 border-white/60 border-b-4 border-[#581c87] shadow-sm transition-all"
+              >
+                <Gift size={13} className="text-white animate-bounce" />
+                <span>Gift</span>
+              </motion.button>
+            </div>
           </div>
 
           {/* Center: 3D Segmented World Navigation Tabs */}
@@ -444,16 +449,25 @@ export function CourseAdventureMap({
             })}
           </div>
 
-          {/* Right: Solid 3D Mystery Gift Button (Desktop) */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setGiftOpen(true)}
-            className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#9333ea] hover:bg-[#7e22ce] text-white font-black font-nunito text-xs sm:text-sm border-2 border-white/60 border-b-4 border-[#581c87] shadow-md transition-all active:translate-y-0.5 flex-shrink-0 cursor-pointer"
-          >
-            <Gift size={16} className="text-white animate-bounce" />
-            <span>Claim Mystery Gift!</span>
-          </motion.button>
+          {/* Right: Action Buttons (Desktop) */}
+          <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
+            <button
+              onClick={() => router.push('/demo')}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-[#10b981] hover:bg-[#059669] text-white font-black font-nunito text-xs sm:text-sm border-2 border-white/60 border-b-4 border-[#047857] shadow-md transition-all active:translate-y-0.5 cursor-pointer"
+            >
+              <Sparkles size={14} className="text-amber-300" />
+              <span>Free Demo</span>
+            </button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setGiftOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#9333ea] hover:bg-[#7e22ce] text-white font-black font-nunito text-xs sm:text-sm border-2 border-white/60 border-b-4 border-[#581c87] shadow-md transition-all active:translate-y-0.5 cursor-pointer"
+            >
+              <Gift size={16} className="text-white animate-bounce" />
+              <span>Claim Mystery Gift!</span>
+            </motion.button>
+          </div>
         </div>
       </header>
 

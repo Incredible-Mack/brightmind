@@ -171,8 +171,15 @@ export default function LandingPage() {
           {/* Auth Actions */}
           <div className="flex items-center gap-3">
             <Link
+              href="/demo"
+              className="bg-[#22c55e]/20 border border-[#22c55e]/50 hover:bg-[#22c55e]/30 text-[#4ade80] font-black text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5"
+            >
+              <Sparkles size={14} />
+              <span>Try Demo</span>
+            </Link>
+            <Link
               href="/login"
-              className="text-white hover:text-amber-300 font-black text-sm px-4 py-2 transition-colors"
+              className="text-white hover:text-amber-300 font-black text-sm px-3 py-2 transition-colors"
             >
               Sign In
             </Link>
@@ -222,17 +229,22 @@ export default function LandingPage() {
                 <span className="text-white">Numbers & Phonics Adventure with Pip</span>
               </div>
 
-              {/* Candy Action Buttons (Pill Green & White Glass) */}
+              {/* Candy Action Buttons (Pill Green, Yellow & Glass) */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-                <Link href="/register">
-                  <button className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-[#22c55e] hover:bg-[#16a34a] text-white font-black text-base px-8 py-4 rounded-full shadow-lg shadow-green-950/40 transition-all hover:scale-105 active:scale-95">
+                <Link href="/demo">
+                  <button className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-[#22c55e] hover:bg-[#16a34a] text-white font-black text-base px-8 py-4 rounded-full shadow-lg shadow-green-950/40 transition-all hover:scale-105 active:scale-95 border-2 border-white/20 border-b-4 border-b-[#15803d]">
                     <Play size={18} fill="white" />
-                    <span>Start Learning — It&apos;s Free</span>
+                    <span>Try Free Demo — No Sign-In</span>
+                  </button>
+                </Link>
+                <Link href="/register">
+                  <button className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-[#facc15] hover:bg-[#eab308] text-[#24225a] font-black text-base px-8 py-4 rounded-full shadow-lg shadow-amber-950/30 transition-all hover:scale-105 active:scale-95">
+                    <span>Create Free Account</span>
                   </button>
                 </Link>
                 <Link href="/login">
-                  <button className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-white/10 hover:bg-white/20 border-2 border-white/25 text-white font-black text-base px-8 py-4 rounded-full transition-all hover:scale-105 active:scale-95">
-                    <span>I already have an account</span>
+                  <button className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-white/10 hover:bg-white/20 border-2 border-white/25 text-white font-black text-sm px-6 py-4 rounded-full transition-all hover:scale-105 active:scale-95">
+                    <span>Sign In</span>
                   </button>
                 </Link>
               </div>
@@ -245,7 +257,7 @@ export default function LandingPage() {
               {/* Speech Bubble pointing down to Pip */}
               <div className="bg-white text-slate-900 rounded-3xl px-5 py-3.5 shadow-2xl max-w-[260px] mb-3 relative z-30 border-2 border-slate-100">
                 <p className="font-nunito font-black text-sm leading-snug text-center text-slate-800">
-                  Hi! I&apos;m Pip, your AI teacher! 🌟
+                  Hi! I&apos;m Pip, your AI teacher! 🌟 Tap <span className="text-[#15803d] font-black underline">Try Free Demo</span> to start!
                 </p>
                 {/* Speech tail pointing down */}
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 border-r border-b border-slate-100" />

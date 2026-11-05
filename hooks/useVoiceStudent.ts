@@ -48,56 +48,78 @@ export function useVoiceStudent(): UseVoiceStudentReturn {
     const SpeechRec = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
     if (!SpeechRec) return false
 
+    // Clean up any existing session
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort() } catch { /* ignore */ }
+    }
+    if (stopTimerRef.current) clearInterval(stopTimerRef.current)
+
     const rec = new SpeechRec()
-    // A sentence has pauses in it: keep listening through them and stop ourselves when the child is done
-    rec.continuous = !!opts.long
+    // Always continuous to prevent Chrome's premature 4-second initial silence cutoff
+    rec.continuous = true
     rec.interimResults = true
     rec.lang = 'en-US'
     recognitionRef.current = rec
 
     const t0 = Date.now()
     let lastResultAt = 0
-    if (opts.long) {
-      stopTimerRef.current = setInterval(() => {
-        const now = Date.now()
-        const quiet = lastResultAt ? now - lastResultAt : 0
-        if ((lastResultAt && quiet > 1800) || (!lastResultAt && now - t0 > 8000) || now - t0 > (opts.maxMs ?? 20000)) {
-          try { rec.stop() } catch { /* already stopped */ }
-        }
-      }, 200)
-    }
+
+    stopTimerRef.current = setInterval(() => {
+      const now = Date.now()
+      const quiet = lastResultAt ? now - lastResultAt : 0
+      const total = now - t0
+      const silenceLimit = opts.long ? 2000 : 1500
+      const maxInitialSilence = 12000 // 12 seconds for child to get ready
+      const maxDuration = opts.maxMs ?? (opts.long ? 24000 : 14000)
+
+      if ((lastResultAt && quiet > silenceLimit) || (!lastResultAt && total > maxInitialSilence) || total > maxDuration) {
+        if (stopTimerRef.current) clearInterval(stopTimerRef.current)
+        try { rec.stop() } catch { /* already stopped */ }
+      }
+    }, 150)
 
     rec.onstart = () => setState(s => ({ ...s, isListening: true, state: 'listening', error: null }))
     rec.onresult = (e: any) => {
       lastResultAt = Date.now()
       let final = ''
       let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript
-        if (e.results[i].isFinal) final += t
-        else interim += t
+      for (let i = 0; i < e.results.length; i++) {
+        const item = e.results[i]
+        if (item.isFinal) final += item[0].transcript + ' '
+        else interim += item[0].transcript + ' '
       }
       setState(s => ({
         ...s,
-        transcript: s.transcript + final,
-        interimTranscript: interim,
+        transcript: final.trim(),
+        interimTranscript: interim.trim(),
       }))
     }
     rec.onerror = (e: any) => {
       if (stopTimerRef.current) clearInterval(stopTimerRef.current)
-      // Silence / cancelled: not a failure, the panel just invites another try
       if (e.error === 'aborted') return
       setState(s => ({ ...s, error: e.error === 'no-speech' ? null : e.error, isListening: false, state: 'done' }))
     }
     rec.onend = () => {
       if (stopTimerRef.current) clearInterval(stopTimerRef.current)
-      // A half-finished sentence can still be in the interim text when recognition stops: keep it
-      setState(s => ({ ...s, transcript: s.transcript || s.interimTranscript, isListening: false, state: 'done', interimTranscript: '' }))
+      recognitionRef.current = null
+      // Retain whichever transcript or interim was captured
+      setState(s => ({
+        ...s,
+        transcript: (s.transcript || s.interimTranscript).trim(),
+        isListening: false,
+        state: 'done',
+        interimTranscript: '',
+      }))
     }
 
     setState(s => ({ ...s, state: 'loading', transcript: '', interimTranscript: '' }))
     setCapture(null)
-    rec.start()
+    try {
+      rec.start()
+    } catch (err) {
+      console.warn('[voice] rec.start error:', err)
+      return false
+    }
     return true
   }, [])
 
@@ -200,7 +222,17 @@ export function useVoiceStudent(): UseVoiceStudentReturn {
 
   const startListening = useCallback((opts: ListenOptions = {}) => {
     const started = startWithWebSpeech(opts)
-    if (!started) startWithMediaRecorder(opts)
+    if (!started) {
+      const hasSpeechRec = typeof window !== 'undefined' && Boolean((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
+      if (hasSpeechRec) {
+        setTimeout(() => {
+          const retried = startWithWebSpeech(opts)
+          if (!retried) startWithMediaRecorder(opts)
+        }, 120)
+      } else {
+        startWithMediaRecorder(opts)
+      }
+    }
   }, [startWithWebSpeech, startWithMediaRecorder])
 
   const stopListening = useCallback(() => {

@@ -54,9 +54,53 @@ export function fallbackGradeSpeech(params: {
   transcript: string
   childName: string
 }): { score: number; passed: boolean; feedback: string } {
-  // Normalize both sides: lowercase, trim, convert digits to words ("1" → "one")
-  const expected = normalizeNumbers(params.expected.toLowerCase().trim())
-  const transcript = normalizeNumbers(params.transcript.toLowerCase().trim())
+  // Normalize both sides: lowercase, remove punctuation, trim, convert digits to words ("1" → "one")
+  const rawExpected = params.expected.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim()
+  const rawTranscript = params.transcript.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim()
+
+  const expected = normalizeNumbers(rawExpected)
+  const transcript = normalizeNumbers(rawTranscript)
+
+  // Empty transcript cannot pass
+  if (!transcript) {
+    return { score: 0, passed: false, feedback: interpolate(pick(WRONG_FEEDBACKS), params.childName) }
+  }
+
+  // Fast direct match
+  if (transcript === expected || transcript === rawExpected) {
+    return { score: 100, passed: true, feedback: interpolate(pick(CORRECT_FEEDBACKS), params.childName) }
+  }
+
+  const words = transcript.split(/\s+/).filter(Boolean)
+
+  // Word token match or substring match (e.g. "it's one" / "number one" / "1 ball")
+  if (words.includes(expected) || words.includes(rawExpected) || transcript.includes(expected)) {
+    return { score: 100, passed: true, feedback: interpolate(pick(CORRECT_FEEDBACKS), params.childName) }
+  }
+
+  // Kid-friendly speech recognition homophones and common phonetic variants
+  const PHONETIC_VARIANTS: Record<string, string[]> = {
+    one: ['1', 'one', 'won', 'wan', 'on', 'juan', 'first', 'wun', 'when', 'run', 'un'],
+    two: [
+      '2', 'two', 'to', 'too', 'tu', 'do', 'due', 'dew', 'dou', 'toe', 
+      'true', 'through', 'threw', 'chew', 'choo', 'shoe', 'shoo', 'who', 
+      'you', 'u', 'new', 'no', 'so', 'cool', 'tube', 'tool', 'tooth', 'second',
+      'to to', 'too too', 'two two'
+    ],
+    three: ['3', 'three', 'tree', 'free', 'thee', 'tri', 'third', 'thre', 'threat', 'see', 'tea'],
+    four: ['4', 'four', 'for', 'fore', 'pour', 'ford', 'fourth', 'door', 'floor'],
+    five: ['5', 'five', 'hive', 'fi', 'fiv', 'fifth', 'fine'],
+    six: ['6', 'six', 'sex', 'sicks', 'seis', 'sixth'],
+    seven: ['7', 'seven', 'sevn', 'seventh'],
+    eight: ['8', 'eight', 'ate', 'ait', 'eighth'],
+    nine: ['9', 'nine', 'nein', 'ninth'],
+    ten: ['10', 'ten', 'tin', 'tan', 'tenth'],
+  }
+  const alts = PHONETIC_VARIANTS[expected] ?? PHONETIC_VARIANTS[rawExpected] ?? []
+  if (alts.some(a => words.includes(a) || transcript.includes(a) || rawTranscript.includes(a)) || words.some(w => alts.includes(w))) {
+    return { score: 100, passed: true, feedback: interpolate(pick(CORRECT_FEEDBACKS), params.childName) }
+  }
+
   const distance = levenshtein(expected, transcript)
   const raw = 100 - (distance / Math.max(expected.length, 1)) * 100
   const score = Math.max(0, Math.min(100, Math.round(raw)))
@@ -88,5 +132,5 @@ export function fallbackCelebrate(params: {
   xpEarned: number
 }): string {
   const msg = pick(CELEBRATE_MESSAGES)
-  return `${msg} You earned ${params.xpEarned} XP!`
+  return `${msg} You earned ${params.xpEarned} points!`
 }

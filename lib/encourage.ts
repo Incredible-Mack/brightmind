@@ -11,82 +11,106 @@ const POOLS: Record<string, { all: string[]; young?: string[]; older?: string[] 
   // right first time
   first: {
     all: [
-      'Brilliant, {name}!', 'Yes! That is it!', 'Spot on!', 'Nailed it!', 'You got it, {name}!', 'Perfect!', 'Superb work!',
-      'That is exactly right!', 'Wow, {name}, well done!', 'Fantastic!', 'Right on the money!', 'Great thinking!', 'You make it look easy!',
-      'Excellent, {name}!', 'Correct, and quick too!', 'Gold star for that one!',
+      'Brilliant work, {name}!', 'Yes! That is exactly right!', 'You got it right, {name}!', 'Perfect answer, {name}!', 'Superb work today!',
+      'That is exactly right!', 'Wow, {name}, well done!', 'Fantastic thinking!', 'You make learning look so fun!',
+      'Excellent work, {name}!', 'Correct, and very quick too!', 'You earned a gold star for that answer!',
     ],
-    young: ['Hooray! You did it!', 'Yippee, {name}!', 'Clever you!', 'High five!', 'Good job, {name}!', 'You are so smart!'],
-    older: ['Sharp answer.', 'Exactly. Nicely reasoned.', 'Solid work, {name}.', 'That is the one.', 'Well reasoned.'],
+    young: ['Hooray! You did it, {name}!', 'Yippee, {name}!', 'You are so clever, {name}!', 'High five, {name}!', 'Good job, {name}!', 'You are so smart!'],
+    older: ['That was a sharp answer, {name}.', 'Exactly right. Nicely reasoned.', 'Solid work, {name}.', 'That is the right one.', 'Very well reasoned, {name}.'],
   },
   // right after a retry
   retry: {
     all: [
-      'You stuck with it and got it!', 'There you go, {name}! Trying again paid off.', 'Got it this time!', 'Great persistence, {name}!',
-      'See? You worked it out!', 'That is the spirit!', 'Second time lucky!', 'Nice recovery!', 'You did not give up, and it shows!', 'Mistakes help us learn, and you proved it!',
+      'You stuck with it and got it right!', 'There you go, {name}! Trying again paid off.', 'You got it this time, {name}!', 'Great persistence, {name}!',
+      'See? You worked it out!', 'That is the spirit, {name}!', 'You solved it on your second try!', 'Great job working that out, {name}!', 'You did not give up, and it shows!', 'Mistakes help us learn, and you proved it!',
     ],
-    young: ['Yay, you tried again and did it!', 'Good trying, {name}!'],
+    young: ['Yay, you tried again and did it!', 'Great effort, {name}!'],
   },
-  streak3: { all: ['Three in a row, {name}!', 'You are on a roll!', 'Hat trick! Keep going!', 'Three right in a row, brilliant!', 'You are on fire, {name}!', 'What a streak!', 'Nothing can stop you now!', 'That is three in a row!'] },
-  streak5: { all: ['Five in a row! Unstoppable!', 'Wow, {name}, five right in a row!', 'Incredible streak!', 'You are a superstar today!', 'Five out of five! Amazing!', 'This is your best run yet!', 'Absolutely flying, {name}!', 'Is there anything you cannot do?'] },
+  streak3: { all: ['Three correct answers in a row, {name}!', 'You are doing wonderful, {name}!', 'Three in a row! Keep going, {name}!', 'Three right in a row, brilliant work!', 'You are doing fantastic today, {name}!', 'What a wonderful streak, {name}!', 'You are doing so well, {name}!', 'That is three correct in a row!'] },
+  streak5: { all: ['Five in a row! You are doing fantastic, {name}!', 'Wow, {name}, five correct answers in a row!', 'What an incredible streak, {name}!', 'You are a superstar today, {name}!', 'Five out of five! Amazing work!', 'This is your best run yet, {name}!', 'You are doing extraordinary work, {name}!', 'You are such a fantastic learner, {name}!'] },
   // wrong answer: kind, never harsh
   comfort: {
     all: [
-      'Not quite, but you are close.', 'Good try, {name}! Have another look.', 'Almost! Think again.', 'That is okay, mistakes help us learn.', 'So near! Try once more.',
-      'Hmm, not this one. You can work it out.', 'Nice effort! Let us try again.', 'Oops! Take your time.', 'Not yet, {name}. You are getting there.', 'Every try teaches you something.', 'Keep going, you have this.', 'That was a good guess. Try another.',
+      'Not quite, but you are very close.', 'Good try, {name}! Have another look.', 'Almost! Think about it once more.', 'That is okay, mistakes help our brains grow.', 'So near! Try once more, {name}.',
+      'Hmm, not this one. You can work it out!', 'Nice effort! Let us try again together.', 'Take your time, {name}. You can do this.', 'Not yet, {name}. You are getting closer!', 'Every try teaches you something new.', 'Keep going, {name}, you can do this!', 'That was a good guess. Let us try another.',
     ],
-    young: ['Oh dear! Try again, {name}!', 'Ooh, nearly! Have another go.', 'It is okay, let us try again!'],
-    older: ['Not quite. Re-read the question and try again.', 'Close, but check it once more.', 'Not that one. Think it through.'],
+    young: ['That is okay! Try once more, {name}!', 'You are so close! Have another go, {name}.', 'It is okay, let us try again together!'],
+    older: ['Not quite. Re-read the question and try again.', 'Close, but check your answer once more.', 'Not that one. Think it through carefully.'],
   },
   // say-it succeeded
   sayPass: {
     all: [
-      'You said it perfectly!', 'Lovely, clear voice!', 'I heard that, great job, {name}!', 'Wonderful speaking!', 'That sounded great!', 'Yes! You said it!',
-      'Beautiful pronunciation!', 'Great sound, {name}!', 'Perfect! I could hear every part.', 'Nicely said!', 'That is exactly how it sounds!', 'Terrific talking!',
+      'You said it perfectly, {name}!', 'You have a lovely, clear voice, {name}!', 'I heard that clearly! Great job, {name}!', 'Wonderful speaking, {name}!', 'That sounded great!', 'Yes! You said it out loud!',
+      'Beautiful pronunciation, {name}!', 'That was a great sound, {name}!', 'Perfect! I could hear every part clearly.', 'Nicely said, {name}!', 'That is exactly how it sounds!', 'That was terrific speaking, {name}!',
     ],
-    young: ['You said it! Hooray!', 'What a lovely voice!'],
+    young: ['You said it! Hooray, {name}!', 'You have such a lovely voice, {name}!'],
   },
-  sayRetry: { all: ['Nice try! Listen once more, then say it again.', 'Almost! One more time, {name}.', 'Good effort! Say it a little slower.', 'I did not quite catch that. Try again.', 'Speak up a little and try again.', 'Close! Listen again and copy me.', 'Take a breath and have another go.', 'Let us hear it one more time.'] },
-  sayGaveUp: { all: ['That is okay, we will practise this one again soon.', 'No worries, {name}. We will come back to it.', 'It is a tricky one. We will try again later.', 'Good trying! We will practise it again soon.', 'Not to worry, we will meet this one again.'] },
-  identifyOk: { all: ['Yes, you found it!', 'Good listening, {name}!', 'That is the one!', 'Sharp ears!', 'You picked the right one!', 'Spot on, great listening!', 'You heard it right!', 'Correct, nice work!'] },
-  identifyNo: { all: ['Not that one. Listen again.', 'Hmm, try another.', 'Close! Listen once more.', 'Have another look and listen.', 'Not quite, {name}. Try again.'] },
+  sayRetry: { all: ['Nice try! Listen once more, then say it again with me.', 'You are almost there! Try saying it one more time, {name}.', 'That was a good effort! Say it a little slower this time.', 'I did not quite hear that. Please try again, {name}.', 'Speak up a little and try again, {name}.', 'You are very close! Listen once more and say it with me.', 'Take a breath and have another go, {name}.', 'Let us hear it one more time together.'] },
+  sayGaveUp: { all: ['That is okay, we will practise this one again soon.', 'That is completely fine, {name}. We will come back to this one soon.', 'It is a tricky one. We will try again later.', 'You tried very hard, {name}! We will practise this again soon.', 'Do not worry, {name}. We will practise this one again soon.'] },
+  identifyOk: { all: ['Yes, you found it, {name}!', 'Good listening, {name}!', 'That is the right one!', 'Sharp ears, {name}!', 'You picked the correct answer!', 'Spot on, that was great listening!', 'You heard it right!', 'Correct, nice work, {name}!'] },
+  identifyNo: { all: ['Not that one. Listen carefully again.', 'Hmm, try another one, {name}.', 'Close! Listen once more.', 'Have another look and listen carefully.', 'Not quite, {name}. Try again.'] },
   // asking the child to say it
   askSay: {
-    all: ['Your turn! Can you say it out loud?', 'Now you try, {name}. Say it out loud!', 'Time to say it yourself!', 'Can you say it like me?', 'Let me hear you say it!', 'Your turn to talk, {name}!', 'Say it with me!', 'Ready to say it out loud?'],
-    young: ['Can you say it, {name}?', 'Your turn! Say it loud!', 'Let us say it together!'],
+    all: ['Your turn! Can you say it out loud?', 'Now you try, {name}. Say it out loud!', 'Time to say it yourself, {name}!', 'Can you say it like me?', 'Let me hear you say it!', 'Your turn to talk, {name}!', 'Say it with me now!', 'Are you ready to say it out loud?'],
+    young: ['Can you say it, {name}?', 'Your turn, {name}! Say it loud and proud!', 'Let us say it together, {name}!'],
   },
   // after Pip has said the word herself, hand over to the child
-  yourTurn: { all: ['Now you!', 'Your turn!', 'Over to you, {name}!', 'Now you say it!', 'Say it with me now!', 'Can you say it?', 'Now say it, {name}!', 'Your turn to say it!'], young: ['Now you, {name}!', 'You say it!'] },
+  yourTurn: { all: ['Now you!', 'Your turn, {name}!', 'Over to you, {name}!', 'Now you say it!', 'Say it with me now!', 'Can you say it, {name}?', 'Now say it out loud, {name}!', 'Your turn to say it!'], young: ['Now you, {name}!', 'You say it, {name}!'] },
   // opening of a lesson (the only time "hi" is used)
-  greetMorning: { all: ['Good morning, {name}! Ready to learn something new?', 'Morning, {name}! Let us get our brains warmed up.', 'Rise and shine, {name}! Let us start.', 'A fresh morning and a fresh lesson, {name}!'] },
-  greetAfternoon: { all: ['Good afternoon, {name}! Let us have some fun learning.', 'Afternoon, {name}! Ready for a lesson?', 'Great to see you, {name}! Let us begin.', 'Welcome back, {name}! Let us dive in.'] },
-  greetEvening: { all: ['Good evening, {name}! A little learning before bed?', 'Evening, {name}! Let us make it a good one.', 'Hello, {name}! A calm lesson to end the day.', 'Welcome, {name}! Let us begin.'] },
-  greetStreak: { all: ['{xp}-day streak, {name}! Keep it going!', 'Back again, {name}! That streak is looking great.'] },
+  greetMorning: { all: ['Good morning, {name}! Ready to learn something new?', 'Good morning, {name}! Let us get our brains warmed up.', 'Rise and shine, {name}! Let us start learning.', 'A fresh morning and a fresh lesson, {name}!'] },
+  greetAfternoon: { all: ['Good afternoon, {name}! Let us have some fun learning.', 'Good afternoon, {name}! Ready for your lesson?', 'Great to see you, {name}! Let us begin.', 'Welcome back, {name}! Let us dive right in.'] },
+  greetEvening: { all: ['Good evening, {name}! A little learning before bedtime?', 'Good evening, {name}! Let us make it a great lesson.', 'Hello, {name}! A calm lesson to end the day.', 'Welcome, {name}! Let us begin our lesson.'] },
+  greetStreak: { all: ['You are on a {xp}-day streak, {name}! Keep it going!', 'Welcome back, {name}! Your learning streak is looking great.'] },
   // between cards (no "hi", no repeating the same opener)
   transition: {
     all: [
-      'Next up!', 'Here we go!', 'Ready for the next one, {name}?', 'On to the next!', 'Let us keep going!', 'Moving on!', 'This one is a good one.', 'Let us see how you do with this.',
-      'Another one for you, {name}.', 'Nice. What is next?', 'Look at this one!', 'Okay, {name}, here is another.', 'Keep it up!', 'Let us go!',
+      'Here is our next question!', 'Are you ready for the next one, {name}?', 'Let us keep going, {name}!', 'Let us move on to the next activity!',
+      'This next one is exciting!', 'Let us see how you do with this one, {name}.', 'Here is another question for you, {name}.', 'Look at this new question, {name}!',
+      'Keep up the great work, {name}!', 'Let us continue!',
     ],
-    young: ['Ooh, what is this?', 'Look, {name}!', 'Ready? Here we go!'],
-    older: ['Next question.', 'Moving on to the next part.', 'Let us build on that.'],
+    young: ['Ooh, what do we have here?', 'Look, {name}! Here comes the next one!', 'Are you ready? Here we go!'],
+    older: ['Let us look at the next question.', 'We are moving on to the next part now.', 'Let us build on what you just learned.'],
   },
   // type-specific openers
-  introListen: { all: ['Listen carefully to this.', 'Let us learn something new, {name}.', 'Here is something to learn.', 'Open your ears, {name}!', 'Listen closely.', 'Let me tell you about this one.', 'Take a look and listen.', 'Here is a new idea.'] },
-  introTap: { all: ['Tap the right answer.', 'Which one is right, {name}?', 'Choose carefully.', 'Can you find the answer?', 'Think about it, then tap.', 'Pick the one you think is correct.', 'Take your time and tap.', 'Which one do you choose?'] },
-  introSpeak: { all: ['Say it out loud!', 'Your turn to speak, {name}.', 'Let me hear your voice.', 'Say your answer clearly.', 'Speak up, {name}!', 'Say it in your own voice.', 'Give it a try out loud.', 'I am listening, {name}.'] },
-  introType: { all: ['Type your answer.', 'Write it in the box, {name}.', 'Type what you think.', 'Put your answer in the box.', 'Spell it out for me.', 'Type it in, {name}.'] },
-  introMatch: { all: ['Match each one with its partner.', 'Can you pair these up, {name}?', 'Tap a word, then tap its partner.', 'Time to make some matches.', 'Find the pairs, {name}.', 'Match them up!'] },
+  introListen: { all: ['Listen carefully to this.', 'Let us learn something new, {name}.', 'Here is something fun to learn.', 'Open your ears, {name}!', 'Listen closely to what Pip says.', 'Let me tell you about this one.', 'Take a look and listen carefully.', 'Here is a new idea for you.'] },
+  introTap: { all: ['Tap the correct answer.', 'Which one is right, {name}?', 'Choose carefully.', 'Can you find the correct answer?', 'Think about it, then tap your choice.', 'Pick the one you think is correct.', 'Take your time and tap the answer.', 'Which one do you choose, {name}?'] },
+  introSpeak: { all: ['Say the answer out loud!', 'Your turn to speak, {name}.', 'Let me hear your clear voice.', 'Say your answer clearly.', 'Speak up, {name}!', 'Say it in your own voice.', 'Give it a try out loud, {name}.', 'I am listening, {name}.'] },
+  introType: { all: ['Type your answer.', 'Write your answer in the box, {name}.', 'Type what you think.', 'Put your answer in the box.', 'Spell it out for me, {name}.', 'Type it in carefully, {name}.'] },
+  introMatch: { all: ['Match each item with its partner.', 'Can you pair these up, {name}?', 'Tap a word, then tap its partner.', 'Time to make some matches, {name}.', 'Find the matching pairs, {name}.', 'Match them up together!'] },
   // finishing a lesson
   celebrate: {
     all: [
-      'Lesson complete! You earned {xp} XP.', 'Brilliant work, {name}! That is {xp} XP.', 'You did it, {name}! {xp} XP earned.', 'What a lesson! +{xp} XP.', 'All done, {name}! You picked up {xp} XP.',
-      'Great effort today, {name}! {xp} XP in the bag.', 'Finished! Your brain just grew a little more. +{xp} XP.', 'Another lesson down, {name}! +{xp} XP.',
-      'You should be proud, {name}! {xp} XP.', 'Smashed it! {xp} XP for you.', 'That was great learning, {name}. {xp} XP!', 'Well done, {name}! You added {xp} XP.',
+      'You have completed the lesson, {name}! You earned {xp} points.',
+      'Brilliant work, {name}! You earned {xp} points today.',
+      'You did a fantastic job, {name}! You earned {xp} points.',
+      'Congratulations on finishing your lesson, {name}! You earned {xp} points.',
+      'You worked so hard today, {name}! You earned {xp} points.',
+      'Your brain grew stronger today, {name}! You earned {xp} points.',
+      'You completed another wonderful lesson, {name}!',
+      'You should be very proud of yourself, {name}! You earned {xp} points.',
+      'That was wonderful learning today, {name}! You earned {xp} points.',
+      'Well done, {name}! You added {xp} points to your progress.',
     ],
-    young: ['Hooray, {name}! You finished! {xp} XP!', 'You did it! Clap clap! {xp} XP!'],
+    young: [
+      'Hooray, {name}! You finished the whole lesson and earned {xp} points!',
+      'You did it, {name}! I am so proud of your wonderful work!',
+    ],
   },
-  celebrateTop: { all: ['Outstanding, {name}! Almost every answer right. +{xp} XP!', 'Top marks today, {name}! +{xp} XP!', 'You really know this, {name}! {xp} XP earned.', 'Fantastic scores, {name}! +{xp} XP.'] },
-  celebrateTryAgain: { all: ['Well done for finishing, {name}! A little more practice and this will be easy. +{xp} XP.', 'You kept going, {name}, and that matters. +{xp} XP.', 'Good effort, {name}! We will practise this again soon. +{xp} XP.'] },
+  celebrateTop: {
+    all: [
+      'Outstanding work, {name}! You got almost every answer correct and earned {xp} points.',
+      'Top marks today, {name}! You earned {xp} points for your wonderful work.',
+      'You really understand this topic, {name}! You earned {xp} points today.',
+      'You achieved a fantastic score today, {name}! You earned {xp} points.',
+    ],
+  },
+  celebrateTryAgain: {
+    all: [
+      'Well done for finishing the lesson, {name}! With a little more practice, this will be easy.',
+      'You kept trying and did not give up, {name}! You earned {xp} points today.',
+      'Great effort today, {name}! We will practise this together again soon.',
+    ],
+  },
 }
 
 // Remember the last few picks per pool so lines do not repeat back to back

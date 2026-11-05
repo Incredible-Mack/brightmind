@@ -8,6 +8,13 @@ import { api } from '@/lib/api'
 // Heart cooldown: exactly 10 minutes per heart (600,000 ms)
 export const REFILL_INTERVAL_MS = 10 * 60 * 1000
 
+export interface CompletedLessonData {
+  lessonId: number
+  score: number
+  xpEarned: number
+  completedAt: string
+}
+
 export interface AppUser {
   id: number
   email: string
@@ -28,6 +35,8 @@ interface AppState {
   /** Paid account: hearts are unlimited. Set from the server on login and whenever the profile loads. */
   premium: boolean
   premiumUntil: string | null
+  completedLessons: Record<number, CompletedLessonData>
+  completeLesson: (lessonId: number, score: number, xp: number) => void
 
   setPremium: (premium: boolean, until?: string | null) => void
   setUser: (user: AppUser | null) => void
@@ -61,6 +70,26 @@ export const useAppStore = create<AppState>()(
       livesRefillAt: null,
       premium: false,
       premiumUntil: null,
+      completedLessons: {},
+      completeLesson: (lessonId, score, xp) => {
+        const current = get().completedLessons || {}
+        const now = new Date().toISOString()
+        const updated = {
+          ...current,
+          [lessonId]: {
+            lessonId,
+            score,
+            xpEarned: xp,
+            completedAt: now,
+          },
+        }
+        get().addXP(xp)
+        const newStreak = Math.max(1, (get().streak || 0) + 1)
+        set({
+          completedLessons: updated,
+          streak: newStreak,
+        })
+      },
 
       setPremium: (premium, until = null) => set(premium ? { premium: true, premiumUntil: until, lives: get().maxLives, livesRefillAt: null } : { premium: false, premiumUntil: null }),
       setUser: (user) => set({ user }),
@@ -190,7 +219,7 @@ export const useAppStore = create<AppState>()(
 
       clearAll: () => set({
         user: null, child: null, xp: 0, level: 0, levelName: 'Seedling', lives: 5, streak: 0,
-        aiTierUsed: null, livesRefillAt: null, premium: false, premiumUntil: null,
+        aiTierUsed: null, livesRefillAt: null, premium: false, premiumUntil: null, completedLessons: {},
       }),
     }),
     {
@@ -207,6 +236,7 @@ export const useAppStore = create<AppState>()(
         livesRefillAt: state.livesRefillAt,
         premium: state.premium,
         premiumUntil: state.premiumUntil,
+        completedLessons: state.completedLessons,
       }),
     }
   )

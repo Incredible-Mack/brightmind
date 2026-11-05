@@ -13,6 +13,13 @@ function fmtNaira(amount: number) {
   return `₦${Number(amount).toLocaleString('en-NG')}`
 }
 
+function getPlanNgn(p: { espees: number; ngn?: number } | null | undefined): number {
+  if (!p) return 0
+  if (p.ngn && p.ngn >= 1000) return p.ngn
+  // Correct for legacy or unscaled rate (e.g. 41 -> 4,100, 410 -> 41,000)
+  return Math.round(p.espees * 2050)
+}
+
 export default function UpgradePage() {
   const router = useRouter()
   const { premium } = useLives()
@@ -142,7 +149,7 @@ export default function UpgradePage() {
               <p className="text-[#10b981] font-black font-nunito text-3xl mt-1">
                 {p.espees} <span className="text-sm font-extrabold">ESPEES</span>
               </p>
-              <p className="text-slate-600 font-bold font-nunito text-xs mt-1">or {fmtNaira(p.ngn)} by card</p>
+              <p className="text-slate-600 font-bold font-nunito text-xs mt-1">or {fmtNaira(getPlanNgn(p))} by card</p>
               <p className="text-slate-400 font-bold font-nunito text-xs mt-3">{p.days} days access</p>
             </button>
           ))}
@@ -166,7 +173,7 @@ export default function UpgradePage() {
               className="w-full py-4 px-6 bg-white hover:bg-slate-50 border-2 border-slate-200 border-b-4 border-slate-300 text-[#1d2445] font-black font-nunito text-base rounded-2xl shadow-sm flex items-center justify-center gap-2.5 transition-all active:translate-y-0.5 cursor-pointer disabled:cursor-not-allowed"
             >
               {busy === 'kingspay' ? <Spinner size={20} color="#1d2445" /> : <CreditCard size={20} />}
-              <span>Pay {fmtNaira(chosen.ngn)} by Card</span>
+              <span>Pay {fmtNaira(getPlanNgn(chosen))} by Card</span>
             </button>
           </div>
         )}

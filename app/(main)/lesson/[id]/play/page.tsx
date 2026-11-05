@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronRight, Volume2, RotateCcw } from 'lucide-react'
+import { X, ChevronRight, Volume2, RotateCcw, Check, Heart, Sparkles, MessageCircle } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import { useLesson } from '@/hooks/useLesson'
 import { useAppStore } from '@/store/useAppStore'
@@ -14,47 +14,38 @@ import { MatchActivity } from '@/components/lesson/MatchActivity'
 import { ActivityImage } from '@/components/lesson/ActivityImage'
 import { activityImage, optionImages, stripEmoji } from '@/lib/media'
 import { api } from '@/lib/api'
-import { fallbackHint } from '@/lib/fallbackTeacher'
+import { fallbackHint, fallbackGradeSpeech } from '@/lib/fallbackTeacher'
 import { say, praiseCorrect, cardIntro, lessonGreeting, celebration } from '@/lib/encourage'
 import { buildSayTarget, buildIdentify } from '@/lib/sayTarget'
 import { cleanForSpeech, isLetterContent, letterScript } from '@/lib/phonics'
 import { localAsrSupported, preloadLocalAsr, onAsrStatus } from '@/lib/asr/localAsr'
-import { LivesBar } from '@/components/lesson/LivesBar'
-import { XPCounter } from '@/components/lesson/XPCounter'
 import { MicrophonePanel } from '@/components/lesson/MicrophonePanel'
 import { Pip } from '@/components/mascot/Pip'
 import { SpeechBubble } from '@/components/mascot/SpeechBubble'
 import { Button } from '@/components/ui/Button'
-import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Spinner } from '@/components/ui/Spinner'
-import type { Activity, TapAnswerContent, ListenContent, SpeakContent, TypeAnswerContent } from '@/types/activity'
+import type { Activity, TypeAnswerContent } from '@/types/activity'
 import type { AgeGroup } from '@/types/child'
 
 type AnswerState = 'idle' | 'correct' | 'wrong'
-// Every teaching card ends with the child DOING something: say it, or (if they cannot talk right now) identify it
 type SayState = 'idle' | 'ask' | 'practice' | 'identify' | 'passed' | 'gaveup'
 type NewBadge = { slug: string; title: string; icon: string; xp_bonus: number }
 
-// type_answer rows keep the answer in content.expected; numeric answers arrive as numbers
 function expectedFor(act: Activity | undefined): string {
   if (!act) return ''
-  const a = act as unknown as { expected_answer?: unknown; content?: { expected?: unknown } }
-  return String(a.expected_answer ?? a.content?.expected ?? '').trim()
+  const a = act as unknown as { expected_answer?: unknown; content?: { expected?: unknown; correct?: unknown } }
+  return String(a.expected_answer ?? a.content?.expected ?? a.content?.correct ?? '').trim()
 }
 
 function getXP(act: Activity) {
   return (act as unknown as { xp_value?: number }).xp_value ?? act.xp_reward ?? 5
 }
 
-// DB stores options as either:
-//   [{id, text, correct}]  (old format)
-//   ["a","b","c"] + correct:"c"  (seed SQL format)
 function normalizeTapOptions(content: Record<string, unknown>) {
   const opts = (content.options ?? []) as unknown[]
   if (opts.length > 0 && typeof opts[0] === 'object' && opts[0] !== null) {
     return opts as Array<{ id: string; text: string; correct: boolean }>
   }
-  // The API turns numeric strings into numbers ("3" -> 3), so compare as text
   const correctVal = String(content.correct ?? '')
   return (opts as unknown[]).map((raw, i) => ({
     id: String(i),
@@ -69,8 +60,134 @@ const NUMBER_WORDS: Record<string, number> = {
   eleven: 11, twelve: 12,
 }
 
-// Extracts [{word, numeral}] from text like "one, two, three, four, five!"
-// Returns null if fewer than 2 number words found (not a sequence)
+interface TeachingData {
+  intro: string
+  reveal: string
+  phrase1: string
+  definition: string
+  example: string
+  actionPrompt: string
+  phrase2: string
+  identifyPrompt: string
+  target: string
+  options: Array<{ id: string; text: string; correct: boolean }>
+}
+
+function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
+  const num = c.number !== undefined ? Number(c.number) : null
+  const word = String(c.word ?? (num !== null ? String(num) : '')).trim()
+
+  if (num === 1) {
+    return {
+      intro: 'One! One means a single unit of an entity.',
+      reveal: 'This is one!',
+      phrase1: 'One! One means a single unit of an entity. This is one!',
+      definition: 'A single unit of an entity',
+      example: 'This is one bouncy soccer ball!',
+      actionPrompt: 'Hold up one finger! ☝️',
+      phrase2: 'This is one bouncy soccer ball! Can you hold up one finger?',
+      identifyPrompt: 'Now, identify One from the list below!',
+      target: '1',
+      options: [
+        { id: '1', text: '1', correct: true },
+        { id: '2', text: '2', correct: false },
+        { id: '3', text: '3', correct: false },
+      ],
+    }
+  }
+
+  if (num === 2) {
+    return {
+      intro: 'Two! Two means a pair: one and one more.',
+      reveal: 'This is two!',
+      phrase1: 'Two! Two means a pair: one and one more. This is two!',
+      definition: 'A pair: one and one more',
+      example: 'These are two shiny stars in the sky!',
+      actionPrompt: 'Hold up two fingers! ✌️',
+      phrase2: 'These are two shiny stars! Can you hold up two fingers?',
+      identifyPrompt: 'Now, identify Two from the list below!',
+      target: '2',
+      options: [
+        { id: '1', text: '1', correct: false },
+        { id: '2', text: '2', correct: true },
+        { id: '3', text: '3', correct: false },
+      ],
+    }
+  }
+
+  if (num === 3) {
+    return {
+      intro: 'Three! Three means a group of three items together.',
+      reveal: 'This is three!',
+      phrase1: 'Three! Three means a group of three items together. This is three!',
+      definition: 'A group of three items',
+      example: 'These are three delicious red apples!',
+      actionPrompt: 'Hold up three fingers! 🤟',
+      phrase2: 'These are three delicious red apples! Can you hold up three fingers?',
+      identifyPrompt: 'Now, identify Three from the list below!',
+      target: '3',
+      options: [
+        { id: '1', text: '1', correct: false },
+        { id: '2', text: '2', correct: false },
+        { id: '3', text: '3', correct: true },
+      ],
+    }
+  }
+
+  if (num !== null) {
+    const numWord = word || String(num)
+    const targetStr = String(num)
+    const optTexts = [String(Math.max(1, num - 1)), String(num), String(num + 1)]
+    return {
+      intro: `${numWord}! ${numWord} means a quantity of ${num}.`,
+      reveal: `This is ${numWord}!`,
+      phrase1: `${numWord}! ${numWord} means a quantity of ${num}. This is ${numWord}!`,
+      definition: `A quantity of ${num}`,
+      example: `Count along with ${numWord}!`,
+      actionPrompt: `Count out loud: ${num}!`,
+      phrase2: `Look at the items! Count out loud: ${num}!`,
+      identifyPrompt: `Now, identify ${numWord} from the list below!`,
+      target: targetStr,
+      options: optTexts.map(t => ({ id: t, text: t, correct: t === targetStr })),
+    }
+  }
+
+  const letter = c.letter as string | undefined
+  if (letter) {
+    const letUpper = letter.toUpperCase()
+    const w = word || (c.word as string) || letUpper
+    const targetStr = letUpper
+    const pool = [letUpper, letUpper === 'A' ? 'B' : 'A', letUpper === 'C' ? 'D' : 'C']
+    return {
+      intro: `${letUpper}! ${letUpper} is for ${w}!`,
+      reveal: `This is ${letUpper}!`,
+      phrase1: `${letUpper}! ${letUpper} is for ${w}!`,
+      definition: `The letter ${letUpper}`,
+      example: `${letUpper} makes the sound /${letUpper.toLowerCase()}/!`,
+      actionPrompt: `Say the sound: /${letUpper.toLowerCase()}/!`,
+      phrase2: `Say the sound: /${letUpper.toLowerCase()}/ like in ${w}!`,
+      identifyPrompt: `Identify ${letUpper} from the list below!`,
+      target: targetStr,
+      options: pool.map(t => ({ id: t, text: t, correct: t === targetStr })),
+    }
+  }
+
+  const hint = String(c.audio_hint ?? c.prompt ?? c.text ?? 'Listen carefully!')
+  const targetStr = word || '1'
+  return {
+    intro: hint,
+    reveal: `This is ${targetStr}!`,
+    phrase1: hint,
+    definition: 'Concept',
+    example: hint,
+    actionPrompt: 'Listen carefully!',
+    phrase2: hint,
+    identifyPrompt: `Identify ${targetStr} from the list below!`,
+    target: targetStr,
+    options: [targetStr, '2', '3'].map(t => ({ id: t, text: t, correct: t === targetStr })),
+  }
+}
+
 function extractNumberPairs(text: string) {
   const tokens = text.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/)
   const pairs = tokens
@@ -79,18 +196,16 @@ function extractNumberPairs(text: string) {
   return pairs.length >= 2 ? pairs : null
 }
 
-// Can we listen to the child at all? (browser speech recognition, or a recorder for the fallback)
 function micAvailable(serverStt: boolean): boolean {
   if (typeof window === 'undefined') return false
   const w = window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown; MediaRecorder?: unknown }
-  // Chrome and Edge listen on their own. Other browsers (Firefox) can only record, which needs the server to turn it into text.
   if (w.SpeechRecognition ?? w.webkitSpeechRecognition) return true
-  // No built-in recognition (Firefox): record, then the in-browser model (or the server, if set up) reads it
   return Boolean(w.MediaRecorder) && (localAsrSupported() || serverStt)
 }
 
 export default function LessonPlayPage() {
   const { id } = useParams<{ id: string }>()
+  const isDemo = id === 'demo' || id === '0'
   const router = useRouter()
   const { child, loseLive, hydrateProfile, addXP } = useAppStore()
   const childId = child?.id ? Number(child.id) : null
@@ -98,20 +213,23 @@ export default function LessonPlayPage() {
     name: child?.name ?? 'friend',
     interest: child?.learning_profile?.interests?.[0],
   }, true)
-  // The run can change while the child plays (an easier or harder item slipped in), so it lives in state
+
   const [queueOverride, setQueueOverride] = useState<PlanItem[] | null>(null)
   const activities = queueOverride ?? (planned as PlanItem[]) ?? []
   const reserveRef = useRef<PlanItem[]>([])
   const adaptRef = useRef<AdaptState>(initialAdaptState)
   const [notice, setNotice] = useState<string | null>(null)
+
   useEffect(() => {
     setQueueOverride(null)
     reserveRef.current = plannedReserve as PlanItem[]
     adaptRef.current = initialAdaptState
   }, [planned, plannedReserve])
+
   const lives = useAppStore(s => s.lives)
+  const maxLives = useAppStore(s => s.maxLives)
   const premium = useAppStore(s => s.premium)
-  const { minutesUntilRefill, formattedTime, refillLives } = useLives()
+  const { formattedTime, refillLives } = useLives()
   const coach = useCoach('lesson_note')
 
   const [actIndex, setActIndex] = useState(0)
@@ -123,7 +241,6 @@ export default function LessonPlayPage() {
   const [hint, setHint] = useState<string | null>(null)
   const [attempts, setAttempts] = useState(0)
   const [xpEarned, setXpEarned] = useState(0)
-  const [showXP, setShowXP] = useState(false)
   const [typedAnswer, setTypedAnswer] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
   const [completed, setCompleted] = useState(false)
@@ -134,28 +251,33 @@ export default function LessonPlayPage() {
   const [videoEnded, setVideoEnded] = useState(false)
   const [micAutoStart, setMicAutoStart] = useState(false)
   const [listenDone, setListenDone] = useState(false)
+  const [listenPhase, setListenPhase] = useState<'phrase1' | 'phrase2' | 'identify' | 'completed'>('phrase1')
+  const [listenSelection, setListenSelection] = useState<string | null>(null)
+  const [listenCorrect, setListenCorrect] = useState(false)
+  const [listenTeachData, setListenTeachData] = useState<TeachingData | null>(null)
+  const [highlightNumber, setHighlightNumber] = useState(false)
+  const [speakTapFallback, setSpeakTapFallback] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(-1)
-  // Teaching cards: listen, then say it back (or identify it when the child cannot talk right now)
   const [sayState, setSayState] = useState<SayState>('idle')
   const [sayTries, setSayTries] = useState(0)
   const [sayVia, setSayVia] = useState<'voice' | 'tap' | null>(null)
   const [identifyPicked, setIdentifyPicked] = useState<string | null>(null)
   const [practiceKey, setPracticeKey] = useState(0)
   const [feedbackLine, setFeedbackLine] = useState<string | null>(null)
-  const streakRef = useRef(0)          // right-first-time answers in a row
+  const [showHeartModal, setShowHeartModal] = useState(false)
+  const [showQuitModal, setShowQuitModal] = useState(false)
+  const streakRef = useRef(0)
   const indexRef = useRef(0)
   const serverSttRef = useRef(false)
   const [voiceNote, setVoiceNote] = useState(false)
 
   const { speak: _speak, stop: stopSpeech, blocked, clearBlocked, unlock } = useVoiceTeacher()
-  // Browsers only allow speech after a tap, so every lesson starts with one
-  const [started, setStarted] = useState(false)
-  // Safe wrapper — speak may throw if no TTS API key and SpeechSynthesis unavailable
+  const [started, setStarted] = useState(true)
+
   const speak = useCallback(async (text: string) => {
     try { await _speak(cleanForSpeech(text)) } catch { /* no-op */ }
   }, [_speak])
 
-  // Bookkeeping that must not go stale inside async handlers
   const narrateIdRef = useRef(0)
   const afterListenRef = useRef<() => void>(() => {})
   const totalXPRef = useRef(0)
@@ -166,7 +288,6 @@ export default function LessonPlayPage() {
   const activityStartRef = useRef(Date.now())
   const resultRef = useRef({ passed: false, score: 0, wrongs: 0 })
 
-  // For number-sequence listen cards: speak each word and highlight its card
   const speakWithHighlight = useCallback(async (text: string) => {
     const pairs = extractNumberPairs(text)
     if (pairs && pairs.length >= 2) {
@@ -184,13 +305,10 @@ export default function LessonPlayPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Can the server mark recordings (needed outside Chrome/Edge)? Asked once.
   useEffect(() => {
     fetch('/api/transcribe').then(r => r.json()).then(j => { serverSttRef.current = !!j.available }).catch(() => {})
   }, [])
 
-  // Browsers without built-in recognition: start fetching the speech model as soon as the lesson starts,
-  // so it is ready by the time the child is asked to speak.
   const [asrPercent, setAsrPercent] = useState<number | null>(null)
   useEffect(() => {
     if (!started) return
@@ -202,7 +320,6 @@ export default function LessonPlayPage() {
     return off
   }, [started])
 
-  // Mark the lesson as started (a finished lesson is never downgraded by the server)
   useEffect(() => {
     if (!childId || !lesson || startedRef.current) return
     startedRef.current = true
@@ -213,63 +330,43 @@ export default function LessonPlayPage() {
   indexRef.current = actIndex
   const ageGroup: AgeGroup = (child?.age ?? 7) <= 5 ? '0-5' : (child?.age ?? 7) <= 8 ? '6-8' : (child?.age ?? 7) <= 11 ? '9-11' : '12-14'
 
-  // Each run is tagged; if the child moves on mid-speech, the old run stops instead of
-  // marking the new card as "done listening".
   const narrate = useCallback(async (act: Activity, replay = false) => {
     const myId = ++narrateIdRef.current
     const stale = () => myId !== narrateIdRef.current
     setSpeechLoading(false)
     setMicAutoStart(false)
     setListenDone(false)
+    setListenPhase('phrase1')
+    setListenSelection(null)
+    setListenCorrect(false)
+    setListenTeachData(null)
+    setHighlightNumber(false)
+    setSpeakTapFallback(false)
     setHighlightIndex(-1)
     const c = act.content as unknown as Record<string, unknown>
 
-    const first = indexRef.current === 0 && !replay
-    const name = child?.name ?? 'friend'
-    const streak = useAppStore.getState().streak
-
-    // After a teaching card is heard the child has to DO something with it
-    const afterListen = async () => {
-      setListenDone(true)
-      const target = buildSayTarget(c)
-      if (!target) { setSayState('passed'); return }
-      const keep = (st: SayState) => (st === 'passed' || st === 'gaveup' || st === 'practice' || st === 'identify') ? st : null
-      if (!micAvailable(serverSttRef.current)) {
-        // No way to listen to them: go straight to identifying
-        setSayState(st => keep(st) ?? 'identify')
-        setSayVia(v => v ?? 'tap')
-        setVoiceNote(true)
-        const q = buildIdentify(c)
-        if (q) await speak(q.spoken)
-        return
-      }
-      setSayState(st => keep(st) ?? 'ask')
-      await speak(say('askSay', name, ageGroup))
-    }
-    afterListenRef.current = afterListen
-
-    // Letter card: "E. E says eh, as in egg. Egg."
-    if (act.type === 'listen' && isLetterContent(c)) {
-      const script = letterScript(c)
-      if (!replay) { setSayState('idle'); setSayTries(0); setSayVia(null); setIdentifyPicked(null); setSpeech(script) }
-      if (first) {
-        const greet = lessonGreeting({ name, ageGroup, streak })
-        await speak(greet)
-        if (stale()) return
-      }
-      await speak(script)
-      if (stale()) return
-      await afterListen()
-      return
-    }
-
     if (!replay) setSayState('idle')
     const listenText = (() => {
-      if (c.number !== undefined) return `${c.word ?? String(c.number)}. ${c.audio_hint ?? ''}`
-      return String(c.prompt ?? c.text ?? '')
+      if (c.number !== undefined) {
+        const hint = String(c.audio_hint ?? '').trim()
+        const word = String(c.word ?? c.number).trim()
+        let base = (hint && hint.toLowerCase().startsWith(word.toLowerCase()))
+          ? hint
+          : (hint ? `${word}. ${hint}` : word)
+        if (!base.toLowerCase().includes('tap') && !base.toLowerCase().includes('continue')) {
+          base = `${base}. Tap the green button to continue!`
+        }
+        return base
+      }
+      const rawPrompt = String(c.prompt ?? c.text ?? '')
+      if (rawPrompt && !rawPrompt.toLowerCase().includes('tap') && !rawPrompt.toLowerCase().includes('continue')) {
+        return `${rawPrompt}. Tap the green button to continue!`
+      }
+      return rawPrompt
     })()
+
     const contentText = act.type === 'listen'
-      ? listenText
+      ? (isLetterContent(c) ? letterScript(c) : listenText)
       : act.type === 'speak'
       ? String(c.prompt ?? '')
       : act.type === 'tap_answer'
@@ -278,30 +375,88 @@ export default function LessonPlayPage() {
       ? String(c.question ?? '')
       : ''
 
-    // A fresh, varied opener each card (the lesson greeting only on the first one)
-    if (!replay) {
-      const intro = cardIntro({ type: act.type, name, ageGroup, first, streak })
-      setSpeech(intro)
-      await speak(intro)
-      if (stale()) return
-    }
+    // Clean, direct Duolingo-style instruction
+    const promptLine = contentText || (act.type === 'speak' ? 'Say this out loud' : 'Listen carefully')
+    setSpeech(promptLine)
+
+    // Teaching Activity (Listen): 3-step natural sequence with breaks & prompt
     if (act.type === 'listen') {
-      const safetyTimer = setTimeout(() => { if (!stale()) afterListen(); }, 5000);
-      if (c.number !== undefined) await speak(contentText);
-      else await speakWithHighlight(contentText);
-      clearTimeout(safetyTimer);
-      if (stale()) return;
-      await afterListen();
-      return;
+      const teach = parseTeachingPhrases(c)
+      setListenTeachData(teach)
+      setListenPhase('phrase1')
+      setListenSelection(null)
+      setListenCorrect(false)
+      setListenDone(false)
+      setHighlightNumber(false)
+      setSayState('idle')
+      setPipMood('happy')
+      setPipAnim('idle')
+
+      // Step 1a: Voice introduces concept & definition
+      setSpeech(teach.intro)
+      await speak(teach.intro)
+      if (stale()) return
+
+      // Brief pause (400ms) before the big reveal
+      await new Promise(r => setTimeout(r, 400))
+      if (stale()) return
+
+      // Step 1b: Numeral Reveal: "This is two!" — NUMBER SCALES UP WITH GLOW!
+      setHighlightNumber(true)
+      setSpeech(teach.reveal)
+      await speak(teach.reveal)
+      if (stale()) return
+
+      // Break of 3 seconds so the child can absorb & identify the scaled-up numeral
+      await new Promise(r => setTimeout(r, 3000))
+      if (stale()) return
+      setHighlightNumber(false)
+
+      // Step 2: Voice speaks Phrase 2 with proper punctuation
+      setListenPhase('phrase2')
+      setSpeech(teach.phrase2)
+      await speak(teach.phrase2)
+      if (stale()) return
+
+      // Break of 3 seconds to let concept sink in
+      await new Promise(r => setTimeout(r, 3000))
+      if (stale()) return
+
+      // Step 3: Voice prompts Identify challenge
+      setListenPhase('identify')
+      setSpeech(teach.identifyPrompt)
+      await speak(teach.identifyPrompt)
+      if (stale()) return
+
+      return
     }
-    // The question itself must be heard, not just the intro
+
+    // Speaking Activity: Pip models first, then listens for child to talk back
+    if (act.type === 'speak') {
+      const numVal = c.number !== undefined ? Number(c.number) : null
+      const targetWord = String(c.word ?? c.prompt ?? c.expected ?? '').replace(/^say:?\s*/i, '').replace(/[!.]/g, '').trim()
+      const spokenLine = numVal !== null
+        ? `Say the number ${numVal} out loud!`
+        : `Say the word ${targetWord} out loud!`
+      setSpeech(spokenLine)
+      setPipMood('happy')
+      setPipAnim('idle')
+      await speak(spokenLine)
+      if (stale()) return
+      await new Promise(r => setTimeout(r, 150))
+      if (stale()) return
+      setPipMood('listening')
+      setMicAutoStart(true)
+      return
+    }
+
     if (contentText) {
       await speak(contentText)
       if (stale()) return
     }
-    if (act.type === 'speak') setMicAutoStart(true)
-  }, [ageGroup, child?.name, speak, speakWithHighlight])
+  }, [speak, speakWithHighlight])
 
+  const actId = currentActivity?.id
   useEffect(() => {
     if (!currentActivity || !started) return
     setAnswerState('idle')
@@ -314,6 +469,12 @@ export default function LessonPlayPage() {
     setVideoEnded(false)
     setMicAutoStart(false)
     setListenDone(false)
+    setListenPhase('phrase1')
+    setListenSelection(null)
+    setListenCorrect(false)
+    setListenTeachData(null)
+    setHighlightNumber(false)
+    setSpeakTapFallback(false)
     setSayState('idle')
     setSayTries(0)
     setSayVia(null)
@@ -328,9 +489,8 @@ export default function LessonPlayPage() {
       stopSpeech()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentActivity, started])
+  }, [actId, started])
 
-  // XP is awarded once per activity, however many times a button is pressed
   const award = (act: Activity, xp: number) => {
     const key = String(act.id)
     if (awardedRef.current.has(key)) return false
@@ -340,7 +500,6 @@ export default function LessonPlayPage() {
     return true
   }
 
-  // One row per activity so progress and later recommendations have real data
   const saveActivityResult = () => {
     const act = currentActivity
     if (!act) return
@@ -366,19 +525,20 @@ export default function LessonPlayPage() {
     setAnswerState('correct')
     setPipMood('excited')
     setPipAnim('correct')
-    setShowXP(true)
-    confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 }, colors: ['#4ade80', '#eab308'] })
+    confetti({ particleCount: 70, spread: 75, origin: { y: 0.7 }, colors: ['#58cc02', '#4ade80', '#eab308'] })
     const firstTry = attempts === 0
     streakRef.current = firstTry ? streakRef.current + 1 : 0
     const line = praiseCorrect({ name: child?.name ?? 'friend', ageGroup, firstTry, streak: streakRef.current })
     setFeedbackLine(line)
     speak(line)
-    setTimeout(() => setShowXP(false), 2000)
   }
 
   const handleWrong = async (feedback?: string) => {
-    loseLive()
-    if (childId && !useAppStore.getState().premium) api.profile.update(childId, { lives: useAppStore.getState().lives }).catch(() => {})
+    if (!isDemo) {
+      loseLive()
+      if (childId && !useAppStore.getState().premium) api.profile.update(childId, { lives: useAppStore.getState().lives }).catch(() => {})
+      if (!isDemo) setShowHeartModal(true)
+    }
     resultRef.current = { ...resultRef.current, wrongs: resultRef.current.wrongs + 1 }
     setAnswerState('wrong')
     setPipMood('sad')
@@ -389,6 +549,7 @@ export default function LessonPlayPage() {
     setFeedbackLine(line)
     if (feedback && attempts < 1) setHint(feedback)
     speak(line)
+    if (!isDemo) setShowHeartModal(true)
     if (attempts >= 1) {
       let h: string
       try {
@@ -420,8 +581,24 @@ export default function LessonPlayPage() {
   }
 
   const handleSpeechResult = (_transcript: string, _score: number, passed: boolean, feedback?: string) => {
-    if (passed) handleCorrect(getXP(currentActivity))
-    else handleWrong(feedback)
+    if (passed) {
+      handleCorrect(getXP(currentActivity))
+    } else {
+      if (attempts < 2) {
+        setAttempts(a => a + 1)
+        const c = currentActivity?.content as unknown as Record<string, unknown> | undefined
+        const numVal = c?.number !== undefined ? Number(c.number) : null
+        const targetWord = numVal !== null ? String(numVal) : expectedFor(currentActivity)
+        const line = `Let's try that again! Say the number ${targetWord} out loud!`
+        setFeedbackLine(line)
+        speak(line).then(() => {
+          setMicAutoStart(false)
+          setTimeout(() => setMicAutoStart(true), 120)
+        })
+      } else {
+        handleWrong(feedback)
+      }
+    }
   }
 
   const handleTypeSubmit = () => {
@@ -432,7 +609,6 @@ export default function LessonPlayPage() {
     else handleWrong()
   }
 
-  // ── Say it back (or identify it) after every teaching card ────────────────
   const sayContent = currentActivity?.type === 'listen' ? (currentActivity.content as unknown as Record<string, unknown>) : null
   const sayTarget = sayContent ? buildSayTarget(sayContent) : null
   const identifyQ = sayContent ? buildIdentify(sayContent) : null
@@ -451,7 +627,7 @@ export default function LessonPlayPage() {
     setFeedbackLine(line)
     setPipMood('excited')
     setPipAnim('correct')
-    confetti({ particleCount: 40, spread: 55, origin: { y: 0.7 }, colors: ['#4ade80', '#eab308'] })
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 }, colors: ['#58cc02', '#4ade80', '#eab308'] })
     speak(line)
   }
 
@@ -463,7 +639,6 @@ export default function LessonPlayPage() {
     speak(line)
   }
 
-  // The child said it (voice)
   const handleSayResult = (_t: string, _s: number, passed: boolean) => {
     if (passed) { markSayPassed('voice', say('sayPass', childName, ageGroup), sayTries === 0 ? 100 : 85, sayTries); return }
     const tries = sayTries + 1
@@ -475,13 +650,10 @@ export default function LessonPlayPage() {
     speak(line)
   }
 
-  // "Yes, I can say it now"
-  // Pip says the word or sentence herself, then hands over. She finishes BEFORE the mic opens,
-  // or it would hear Pip instead of the child.
   const modelThenListen = async () => {
     const run = narrateIdRef.current
     setMicAutoStart(false)
-    setPracticeKey(k => k + 1)           // a fresh microphone panel, so any recording in progress is dropped
+    setPracticeKey(k => k + 1)
     if (sayTarget) {
       await speak(sayTarget.model)
       if (run !== narrateIdRef.current) return
@@ -498,7 +670,6 @@ export default function LessonPlayPage() {
     await modelThenListen()
   }
 
-  // "I cannot talk right now": identify instead
   const chooseTap = () => {
     setMicAutoStart(false)
     setSayState('identify')
@@ -517,7 +688,6 @@ export default function LessonPlayPage() {
     const tries = sayTries + 1
     setSayTries(tries)
     if (tries >= 2) {
-      // show the answer and move on: they heard it, and this card will come back
       setIdentifyPicked(identifyQ.correct)
       markSayGaveUp(tries)
       return
@@ -529,20 +699,57 @@ export default function LessonPlayPage() {
     setTimeout(() => setIdentifyPicked(null), 700)
   }
 
-  // Re-play the content for listen activities (cancels any run still in flight)
+  const handleListenPick = async (opt: { id: string; text: string; correct: boolean }) => {
+    if (listenCorrect) return
+    const c = currentActivity?.content as unknown as Record<string, unknown>
+    const teach = listenTeachData ?? parseTeachingPhrases(c ?? {})
+    setListenSelection(opt.id)
+
+    if (opt.correct) {
+      setListenCorrect(true)
+      setListenPhase('completed')
+      setListenDone(true)
+      setSayState('passed')
+      setPipMood('excited')
+      setPipAnim('correct')
+      confetti({ particleCount: 50, spread: 70, origin: { y: 0.65 }, colors: ['#58cc02', '#4ade80', '#eab308'] })
+
+      const continueInstruction = 'Awesome! Tap the green button to continue 👉'
+      setSpeech(continueInstruction)
+      await speak('Tap the green button to continue!')
+    } else {
+      setPipMood('thinking')
+      setPipAnim('wrong')
+      const retryLine = `Try again! Which one is ${teach.target}?`
+      setSpeech(retryLine)
+      await speak(retryLine)
+      setTimeout(() => {
+        setListenSelection(null)
+        setPipMood('happy')
+        setPipAnim('idle')
+      }, 900)
+    }
+  }
+
   const handleListenAgain = useCallback(() => {
     if (!currentActivity) return
+    setListenSelection(null)
+    setListenCorrect(false)
     narrate(currentActivity, true)
   }, [currentActivity, narrate])
 
-  // Award XP and advance (no correct/wrong panel for listen)
   const handleListenContinue = () => {
     if (!currentActivity || advancingRef.current) return
     const full = getXP(currentActivity)
-    // Saying it earns the most; identifying it a little less; giving up half
     if (sayState === 'passed') award(currentActivity, sayVia === 'tap' ? Math.max(1, Math.round(full * 0.7)) : full)
     else award(currentActivity, Math.floor(full * 0.5))
     setListenDone(false)
+    setListenPhase('phrase1')
+    setListenSelection(null)
+    setListenCorrect(false)
+    setListenTeachData(null)
+    setHighlightNumber(false)
+    setSpeakTapFallback(false)
     handleNext()
   }
 
@@ -552,24 +759,30 @@ export default function LessonPlayPage() {
     const scores = scoresRef.current
     const score = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 100
     const xp = totalXPRef.current
+    const lessonIdNum = Number(id)
+
+    // Save progress locally (persisted in localStorage)
+    useAppStore.getState().completeLesson(lessonIdNum, score, xp)
+
+    // Also sync to server if profile exists
     try {
-      if (!childId) throw new Error('no child')
-      const res = await api.progress.upsert({
-        child_id: childId, lesson_id: Number(id), status: 'completed', score, xp_earned: xp,
-      })
-      if (res.profile) hydrateProfile(res.profile)
-      else addXP(xp)
-      setNewBadges(res.new_achievements ?? [])
+      if (childId) {
+        const res = await api.progress.upsert({
+          child_id: childId, lesson_id: lessonIdNum, status: 'completed', score, xp_earned: xp,
+        })
+        if (res.profile) hydrateProfile(res.profile)
+        setNewBadges(res.new_achievements ?? [])
+      }
     } catch {
-      addXP(xp) // keep the reward visible even if the save failed
+      // Offline fallback: progress already safely saved in local state
     }
     const message = celebration({ name: child?.name ?? 'friend', ageGroup, xp, score })
     setCelebrationMsg(message)
     setCompleted(true)
     setFinishing(false)
-    confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: ['#4ade80','#eab308','#3b82f6','#a855f7'] })
+    confetti({ particleCount: 180, spread: 100, origin: { y: 0.5 }, colors: ['#58cc02', '#4ade80', '#3b82f6', '#facc15'] })
     speak(message)
-    coach.refresh() // personal note + what to do next (cached, rule-based pick)
+    coach.refresh()
   }
 
   const handleNext = async () => {
@@ -577,7 +790,6 @@ export default function LessonPlayPage() {
     advancingRef.current = true
     const r = resultRef.current
     saveActivityResult()
-    // React to how this answer went before showing the next item
     const adapted = adaptQueue(activities, actIndex, reserveRef.current, adaptRef.current, {
       passed: r.passed, firstTry: r.passed && r.wrongs === 0,
     })
@@ -590,103 +802,198 @@ export default function LessonPlayPage() {
   }
 
   if (loading || !lesson) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] flex items-center justify-center">
-      <Spinner size={40} />
+    <div className="min-h-screen bg-[#131f24] flex items-center justify-center">
+      <Spinner size={44} color="#58cc02" />
     </div>
   )
 
   if (!loading && lesson && activities.length === 0 && (!planned || planned.length === 0)) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] text-[#1d2445] flex flex-col items-center justify-center p-6 text-center">
+    <div className="min-h-screen bg-white text-[#1d2445] flex flex-col items-center justify-center p-6 text-center font-nunito">
       <Pip size="xl" mood="sad" animate="idle" />
-      <h1 className="text-2xl font-extrabold text-[#1d2445] font-nunito mt-6 mb-2">Couldn&apos;t load the lesson</h1>
-      <p className="text-slate-500 font-nunito text-sm mb-8">Something went wrong fetching the activities. Check your connection and try again.</p>
-      <Button size="lg" onClick={() => load()}>Try Again</Button>
-      <button onClick={() => router.push(`/lessons/${id}`)} className="mt-4 text-slate-400 hover:text-[#1d2445] font-nunito text-sm">Back</button>
+      <h1 className="text-3xl font-black text-[#1d2445] mt-6 mb-2">Couldn&apos;t load activities</h1>
+      <p className="text-slate-500 font-bold text-sm mb-8">Please check your connection and give it another try.</p>
+      <button onClick={() => load()} className="px-8 py-3.5 bg-[#58cc02] hover:bg-[#46a302] text-white font-black rounded-2xl border-2 border-[#58cc02] border-b-4 border-b-[#46a302] shadow-sm uppercase tracking-wider">
+        Try Again
+      </button>
+      <button onClick={() => router.push(isDemo ? '/' : `/lessons/${id}`)} className="mt-4 text-slate-400 hover:text-slate-600 font-bold text-sm">
+        Back to Course
+      </button>
     </div>
   )
 
-  if (!started && !completed && (premium || lives > 0)) {
+  // Duolingo-style Intro Screen (Guest / Demo friendly)
+  if (!started && !completed && (premium || lives > 0 || isDemo)) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] text-[#1d2445] flex flex-col items-center justify-center p-6 text-center">
-        <Pip size="xl" mood="excited" animate="idle" />
-        <h1 className="text-3xl font-extrabold text-[#1d2445] font-nunito mt-6 mb-2">{lesson.title}</h1>
-        <p className="text-slate-600 font-bold font-nunito mb-1">Turn your sound on. Pip will talk to you and listen to you.</p>
-        <p className="text-slate-500 font-nunito text-sm mb-8">
-          {activities.length > 0 ? `${activities.length} activities` : 'Loading activities…'}
-        </p>
-        <Button size="xl" disabled={activities.length === 0} onClick={() => { unlock(); setStarted(true) }}>
-          {activities.length === 0 ? <><Spinner size={20} /> Loading…</> : <>Let&apos;s start! <ChevronRight size={22} /></>}
-        </Button>
-        <button onClick={() => router.push(`/lessons/${id}`)} className="mt-5 text-slate-500 hover:text-[#1d2445] font-nunito text-sm">Back</button>
+      <div className="min-h-screen bg-[#131f24] text-white flex flex-col font-nunito">
+        <div className="max-w-4xl mx-auto w-full px-6 py-6 flex items-center justify-between">
+          <button onClick={() => router.push(isDemo ? '/' : `/lessons/${id}`)} className="p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+            <X size={26} strokeWidth={2.5} />
+          </button>
+          <div className="flex items-center gap-1.5 text-rose-500 font-black text-lg bg-rose-500/10 px-3.5 py-1.5 rounded-full border border-rose-500/30">
+            <Heart size={20} fill="#ef4444" />
+            <span className="text-white">{premium || isDemo ? '∞' : lives}</span>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center max-w-md mx-auto w-full">
+          <Pip size="xl" mood="excited" animate="idle" />
+          <h1 className="text-3xl sm:text-4xl font-black text-white mt-6 mb-3 tracking-tight">
+            {isDemo ? 'Numbers 1, 2, 3 Counting Adventure' : lesson.title}
+          </h1>
+          <p className="text-slate-300 font-bold text-base mb-8 leading-relaxed">
+            {isDemo
+              ? 'Try out Bright Steps! Pip will speak with you, count objects, and guide your practice — completely free, no sign-in required.'
+              : 'Turn your volume up! Pip will speak with you and guide your practice.'}
+          </p>
+
+          <div className="w-full space-y-3">
+            <button
+              onClick={() => { unlock(); setStarted(true) }}
+              className="w-full py-4 px-8 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-lg rounded-2xl border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-1 active:border-b-2 shadow-lg uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+            >
+              <span>{isDemo ? 'Start Free Demo Adventure' : 'Start Lesson'}</span>
+              <ChevronRight size={22} strokeWidth={3} />
+            </button>
+            <p className="text-slate-400 font-extrabold text-xs tracking-wider uppercase">
+              {activities.length} interactive exercises • Free trial
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
 
+  // Out of hearts screen
   if (!premium && lives <= 0 && !completed && !finishing) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] text-[#1d2445] flex flex-col items-center justify-center p-6 text-center">
-        <Pip size="xl" mood="sad" animate="wrong" />
-        <h1 className="text-3xl font-extrabold text-[#1d2445] font-nunito mt-6 mb-2">No hearts left</h1>
-        <div className="bg-white/10 border border-slate-200 rounded-2xl px-5 py-3 my-3 flex items-center gap-3 max-w-sm mx-auto">
-          <span className="text-2xl animate-pulse">❤️</span>
-          <div className="text-left">
-            <p className="text-white font-black text-sm font-nunito">
-              Next heart in: <span className="text-amber-400 font-mono text-base">{formattedTime}</span>
-            </p>
-            <p className="text-slate-400 text-xs font-nunito">10-minute cooldown per heart</p>
-          </div>
+      <div className="min-h-screen bg-white text-[#1d2445] flex flex-col items-center justify-center p-6 text-center font-nunito">
+        <div className="w-20 h-20 rounded-3xl bg-rose-100 text-rose-500 flex items-center justify-center text-4xl mb-6 shadow-inner">
+          💔
         </div>
-        <p className="text-slate-600 font-bold font-nunito mb-6 max-w-sm">
-          Take a short break while your hearts recharge, or tap below to instantly refill and keep playing!
+        <h1 className="text-3xl font-black text-[#1d2445] mb-2">You ran out of hearts!</h1>
+        <p className="text-slate-500 font-bold text-sm max-w-sm mb-6">
+          Next heart recharges in <span className="text-amber-600 font-black font-mono">{formattedTime}</span>. Or refill right now to keep playing!
         </p>
-        <div className="flex gap-3 flex-wrap justify-center">
-          <Button
-            size="lg"
+
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
             onClick={() => refillLives()}
-            className="bg-[#10b981] hover:bg-[#059669] text-white font-black font-nunito shadow-lg"
+            className="w-full py-3.5 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-base rounded-2xl border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-0.5 shadow-sm uppercase tracking-wider"
           >
-            Refill Hearts (5/5 ❤️)
-          </Button>
-          <Button size="lg" variant="secondary" onClick={() => router.push('/upgrade')}>Go Unlimited</Button>
-          <Button variant="secondary" size="lg" onClick={() => router.push('/dashboard')}>Go Home</Button>
-          <Button variant="ghost" size="lg" onClick={() => router.push('/lessons')}>Other Lessons</Button>
+            Refill Full Hearts (5/5 ❤️)
+          </button>
+          <button
+            onClick={() => router.push('/upgrade')}
+            className="w-full py-3.5 bg-sky-500 hover:bg-sky-600 text-white font-black text-base rounded-2xl border-2 border-sky-500 border-b-4 border-b-sky-700 active:translate-y-0.5 shadow-sm uppercase tracking-wider"
+          >
+            Get Plus (Unlimited ❤️)
+          </button>
+          <button
+            onClick={() => router.push('/lessons')}
+            className="text-slate-400 hover:text-slate-600 font-black text-sm pt-2"
+          >
+            Back to Course Map
+          </button>
         </div>
       </div>
     )
   }
 
+  // Completed Screen (Duolingo Dark + Demo celebration)
   if (completed) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] text-[#1d2445] flex flex-col items-center justify-center p-6 text-center">
-        <Pip size="xl" mood="excited" animate="correct" />
-        <h1 className="text-4xl font-extrabold text-[#1d2445] font-nunito mt-6 mb-2">Lesson Complete!</h1>
-        <p className="text-[#10b981] font-bold font-nunito text-lg mb-4">{celebrationMsg}</p>
-        <div className="flex items-center gap-2 text-yellow-400 text-2xl font-extrabold font-nunito mb-8">
-          +{totalXP} XP earned!
-        </div>
-        {newBadges.length > 0 && (
-          <div className="flex flex-col items-center gap-2 mb-8">
-            <p className="text-slate-600 font-bold font-nunito text-sm">New badge{newBadges.length > 1 ? 's' : ''} unlocked!</p>
-            <div className="flex gap-3 flex-wrap justify-center">
-              {newBadges.map(b => (
-                <div key={b.slug} className="bg-white border border-yellow-500/30 rounded-2xl px-4 py-3 flex items-center gap-3">
-                  <span className="text-3xl">{b.icon}</span>
-                  <span className="text-[#1d2445] font-black font-nunito text-sm">{b.title}{b.xp_bonus ? ` · +${b.xp_bonus} XP` : ''}</span>
-                </div>
-              ))}
+      <div className="min-h-screen bg-[#131f24] text-white flex flex-col font-nunito">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto w-full">
+          <Pip size="xl" mood="excited" animate="correct" />
+          <h1 className="text-4xl font-black text-white mt-6 mb-2">
+            {isDemo ? 'Demo Lesson Complete! 🎉' : 'Lesson Complete!'}
+          </h1>
+          <p className="text-[#4ade80] font-black text-lg mb-4">{celebrationMsg}</p>
+
+          <div className="flex items-center gap-3 bg-amber-500/10 border-2 border-amber-400/30 rounded-2xl px-6 py-3 my-4">
+            <span className="text-3xl">⭐</span>
+            <div className="text-left">
+              <p className="text-amber-300 font-black text-xl">+{totalXP} XP</p>
+              <p className="text-amber-200/80 font-bold text-xs">Total experience gained</p>
             </div>
           </div>
-        )}
-        {coach.note && (
-          <p className="text-slate-600 font-bold font-nunito text-sm max-w-sm mb-6">{coach.note.child}</p>
-        )}
-        <div className="flex gap-3 flex-wrap justify-center">
-          {coach.rec?.recommended.find(r => r.lesson_id !== Number(id)) && (() => {
-            const nextPick = coach.rec!.recommended.find(r => r.lesson_id !== Number(id))!
-            return <Button size="lg" onClick={() => router.push(nextPick.reason === 'checkpoint' && nextPick.skill_slug ? `/checkpoint/${encodeURIComponent(nextPick.skill_slug)}` : `/lessons/${nextPick.lesson_id}`)}>{nextPick.reason === 'checkpoint' ? 'Show what you know' : `Next: ${nextPick.title}`}</Button>
-          })()}
-          <Button variant="secondary" size="lg" onClick={() => router.push('/lessons')}>All Lessons</Button>
-          <Button variant="ghost" size="lg" onClick={() => router.push('/dashboard')}>Go Home</Button>
+
+          {isDemo ? (
+            <div className="w-full bg-[#18252d] border-2 border-[#2e3e48] rounded-3xl p-5 my-4 text-center">
+              <p className="text-[#58cc02] font-black text-sm uppercase tracking-wider mb-1">🎉 Fantastic job completing the demo!</p>
+              <p className="text-slate-300 font-bold text-xs leading-relaxed mb-4">
+                Sign up for a free account now to save your streak, track badges, and unlock all 20+ lessons!
+              </p>
+              <button
+                onClick={() => router.push('/register')}
+                className="w-full py-4 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-base rounded-2xl border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-0.5 shadow-lg uppercase tracking-wider"
+              >
+                Save Progress &amp; Sign Up Free
+              </button>
+            </div>
+          ) : (
+            <>
+              {newBadges.length > 0 && (
+                <div className="w-full bg-[#18252d] border-2 border-[#2e3e48] rounded-3xl p-4 my-4">
+                  <p className="text-slate-400 font-black text-xs uppercase tracking-wider mb-2">New Badge Unlocked!</p>
+                  {newBadges.map(b => (
+                    <div key={b.slug} className="flex items-center gap-3 bg-[#24333b] p-3 rounded-2xl border border-slate-700 shadow-xs">
+                      <span className="text-3xl">{b.icon}</span>
+                      <div className="text-left">
+                        <p className="text-white font-black text-sm">{b.title}</p>
+                        {b.xp_bonus > 0 && <p className="text-emerald-400 font-black text-xs">+{b.xp_bonus} XP bonus</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {coach.note && (
+                <p className="text-slate-300 font-bold text-sm bg-purple-950/40 border border-purple-500/30 rounded-2xl p-4 my-3 text-purple-200">
+                  💡 {coach.note.child}
+                </p>
+              )}
+            </>
+          )}
+
+          <div className="w-full pt-4 space-y-3">
+            {isDemo ? (
+              <>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full py-3.5 bg-[#24333b] hover:bg-[#2c3d47] text-white font-black text-sm rounded-2xl border-2 border-[#324550] border-b-4 border-b-[#1c2930] uppercase tracking-wider"
+                >
+                  Play Demo Again
+                </button>
+                <button
+                  onClick={() => router.push('/lessons')}
+                  className="w-full py-3 text-slate-400 hover:text-white font-black text-xs uppercase tracking-wider"
+                >
+                  Explore All Courses
+                </button>
+              </>
+            ) : (
+              <>
+                {coach.rec?.recommended.find(r => r.lesson_id !== Number(id)) && (() => {
+                  const nextPick = coach.rec!.recommended.find(r => r.lesson_id !== Number(id))!
+                  return (
+                    <button
+                      onClick={() => router.push(nextPick.reason === 'checkpoint' && nextPick.skill_slug ? `/checkpoint/${encodeURIComponent(nextPick.skill_slug)}` : `/lessons/${nextPick.lesson_id}`)}
+                      className="w-full py-4 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-base rounded-2xl border-2 border-[#58cc02] border-b-4 border-b-[#46a302] uppercase tracking-wider shadow-lg"
+                    >
+                      {nextPick.reason === 'checkpoint' ? 'Show What You Know' : `Next: ${nextPick.title}`}
+                    </button>
+                  )
+                })()}
+                <button
+                  onClick={() => router.push('/lessons')}
+                  className="w-full py-3.5 bg-[#24333b] hover:bg-[#2c3d47] text-slate-200 font-black text-sm rounded-2xl border-2 border-[#324550] border-b-4 border-b-[#1c2930] uppercase tracking-wider"
+                >
+                  Back to Course Map
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -694,447 +1001,797 @@ export default function LessonPlayPage() {
 
   const act = currentActivity
   if (!act) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] flex items-center justify-center">
-      <Spinner size={40} />
+    <div className="min-h-screen bg-[#131f24] flex items-center justify-center">
+      <Spinner size={44} color="#58cc02" />
     </div>
   )
-  const progress = ((actIndex) / activities.length) * 100
+
+  const progress = Math.min(100, Math.max(5, ((actIndex + 1) / activities.length) * 100))
+  const sayDone = sayState === 'passed' || sayState === 'gaveup'
+  const isCorrect = answerState === 'correct'
+  const isWrong = answerState === 'wrong'
+
+  // Determine if primary action is enabled in footer
+  const canCheck = (() => {
+    if (act.type === 'listen') return listenCorrect
+    if (act.type === 'tap_answer') return selected !== null && answerState === 'idle'
+    if (act.type === 'type_answer') return typedAnswer.trim().length > 0 && answerState === 'idle'
+    if (act.type === 'speak') return true
+    return false
+  })()
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0fdf4] to-[#fefce8] text-[#1d2445] flex flex-col">
-      <div className="flex items-center gap-4 px-4 py-3 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-xs">
-        <button onClick={() => router.push(`/lessons/${id}`)} className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-[#1d2445] transition-colors">
-          <X size={20} />
+    <div className="min-h-screen bg-[#131f24] text-white flex flex-col font-nunito select-none">
+      
+      {/* ── DUOLINGO TOP BAR ─────────────────────────────────────── */}
+      <header className="max-w-4xl mx-auto w-full px-4 sm:px-8 pt-3 sm:pt-4 pb-1.5 flex items-center gap-3 sm:gap-6 bg-[#131f24] sticky top-0 z-30">
+        {/* Quit X button */}
+        <button
+          onClick={() => setShowQuitModal(true)}
+          className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+          title="Quit Lesson"
+        >
+          <X size={22} strokeWidth={2.8} />
         </button>
-        <div className="flex-1">
-          <ProgressBar value={progress} max={100} color="#4ade80" height={8} />
-        </div>
-        <LivesBar />
-      </div>
 
-      <div className="flex-1 flex flex-col items-center px-4 py-8 max-w-xl mx-auto w-full">
-        {(() => {
-          const chip = reason === 'review' ? { text: 'Review time', cls: 'bg-purple-100 text-purple-900 border-purple-300' }
-            : reason === 'retry' ? { text: 'Another go', cls: 'bg-amber-100 text-amber-900 border-amber-300' }
-            : reason === 'challenge' ? { text: 'Challenge', cls: 'bg-orange-100 text-orange-900 border-orange-300' }
-            : reason === 'continue' ? { text: 'Keep going', cls: 'bg-blue-100 text-blue-900 border-blue-300' }
-            : { text: 'Something new', cls: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
-          return (
-            <div className="flex flex-col items-center gap-2 mb-4 w-full">
-              <span className={`text-xs font-bold font-nunito uppercase tracking-widest px-3 py-1 rounded-full border ${chip.cls}`}>{chip.text}</span>
-              {notice && <p className="text-[#10b981] text-sm font-nunito font-semibold text-center">{notice}</p>}
-              {act.role === 'review' && <p className="text-purple-300 text-xs font-nunito">A quick look back at something you learned before</p>}
-            </div>
-          )
-        })()}
-        <div className="flex items-end gap-4 mb-8 w-full justify-center">
-          <Pip size="lg" mood={pipMood} animate={pipAnim} />
-          <SpeechBubble text={hint ?? speech} loading={speechLoading} />
-        </div>
-        {blocked && (
-          <Button variant="secondary" size="md" className="-mt-4 mb-4 gap-2" onClick={() => { unlock(); clearBlocked(); if (currentActivity) narrate(currentActivity, true) }}>
-            <Volume2 size={16} /> Tap to hear Pip
-          </Button>
-        )}
-
-        <div className="flex gap-2 mb-8 justify-center flex-wrap">
-          {activities.map((_, i) => (
-            <div key={i} className={`h-2 rounded-full transition-all ${
-              i < actIndex ? 'w-4 bg-[#22c55e]'
-              : i === actIndex ? 'w-6 bg-[#4ade80]'
-              : 'w-2.5 bg-slate-300'
-            }`} />
-          ))}
+        {/* Duolingo Signature Glossy Progress Bar */}
+        <div className="flex-1 h-3 sm:h-3.5 bg-[#37464f] rounded-full overflow-hidden relative shadow-inner">
+          <motion.div
+            className="h-full bg-[#58cc02] rounded-full relative"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+          >
+            {/* Glossy top streak */}
+            <div className="h-1 bg-white/40 rounded-full mx-1.5 mt-0.5" />
+          </motion.div>
         </div>
 
+        {/* Heart Lives Pill */}
+        <div
+          onClick={() => { if (!premium && lives < maxLives) refillLives() }}
+          className="flex items-center gap-1.5 text-rose-500 font-black text-sm sm:text-base px-2.5 py-1 rounded-2xl hover:bg-rose-50/10 cursor-pointer transition-colors"
+          title={premium ? 'Unlimited hearts' : `${lives} hearts left (Click to refill)`}
+        >
+          <Heart size={20} fill="#f43f5e" className="text-rose-500 animate-pulse" />
+          <span className="font-extrabold text-white">{premium ? '∞' : lives}</span>
+        </div>
+      </header>
+
+      {/* ── MAIN EXERCISE CONTAINER (FITS SCREEN NATURALLY, SCROLLABLE IF SMALL) ── */}
+      <main className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full px-3 sm:px-6 pt-1 sm:pt-2 pb-24 sm:pb-28">
+        
+        {/* Badge Indicator */}
+        <div className="flex items-center gap-2 mb-1.5 self-start">
+          <span className="text-[11px] font-black uppercase tracking-wider text-[#c084fc] bg-[#7c3aed]/20 border border-[#a855f7]/30 px-3 py-1 rounded-full flex items-center gap-1.5">
+            {act.type === 'listen' ? '✨ NEW NUMBER' : act.type === 'speak' ? '🎤 SPEAK OUT LOUD' : act.type === 'tap_answer' ? '✨ CHOOSE ANSWER' : act.type === 'type_answer' ? '⌨️ WRITE ANSWER' : '🧩 MATCH PAIRS'}
+          </span>
+          {notice && <span className="text-xs font-bold text-emerald-400">{notice}</span>}
+        </div>
+
+        {/* Mascot + Speech Prompt Area (Duolingo Style - Compact Single Voice) */}
+        <div className="flex items-center gap-3 mb-2 sm:mb-2.5 w-full">
+          <div className="flex-shrink-0">
+            <Pip size="sm" mood={pipMood} animate={pipAnim} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <SpeechBubble text={hint ?? speech} loading={speechLoading} dark={true} />
+          </div>
+        </div>
+
+        {/* ── EXERCISE CONTENT BY TYPE ───────────────────────────── */}
         <AnimatePresence mode="wait">
           <motion.div
             key={act.id}
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            className="w-full flex flex-col items-center gap-6"
+            exit={{ opacity: 0, y: -12 }}
+            className="w-full flex flex-col items-center"
           >
+            {/* 1. LISTEN & TEACHING ACTIVITY (DUOLINGO CLEAN ADVENTURE) */}
             {act.type === 'listen' && (() => {
               const c = act.content as unknown as Record<string, unknown>
-              const letter  = c.letter  as string | undefined
-              const word    = c.word    as string | undefined
-              const visual  = c.visual  as string | undefined
-              const img     = activityImage(c)          // a real picture replaces the emoji
-              const num     = c.number  as number | undefined
+              const teach = listenTeachData ?? parseTeachingPhrases(c)
+              const num = c.number as number | undefined
+              const word = c.word as string | undefined
+              const img = activityImage(c)
               const objects = c.objects as string[] | undefined
-              const fullPrompt = String(c.prompt ?? c.text ?? '')
-              const colonIdx = fullPrompt.indexOf(':')
-              const contentPart = colonIdx >= 0 ? fullPrompt.slice(colonIdx + 1).trim() : fullPrompt
-              const numberPairs = extractNumberPairs(contentPart)
 
-              const sayDone = sayState === 'passed' || sayState === 'gaveup'
-              const sayBlock = (
-                <>
-                  {asrPercent != null && (sayState === 'ask' || sayState === 'practice') && (
-                    <p className="text-slate-500 font-bold font-nunito text-xs text-center">Getting my ears ready for your voice… {asrPercent}% (only the first time)</p>
-                  )}
-                  {sayState === 'ask' && (
-                    <div className="w-full bg-white rounded-3xl p-6 border-2 border-purple-200 border-b-4 border-purple-300 shadow-lg text-center">
-                      <p className="text-[#1d2445] font-nunito font-black text-xl mb-1">Your turn!</p>
-                      {sayTarget && <p className="text-[#10b981] font-nunito font-bold text-xl mb-1">{sayTarget.instruction}</p>}
-                      <p className="text-slate-600 font-bold font-nunito text-sm mb-4">
-                        {sayTarget?.kind === 'letter' ? 'Say the sound out loud to move on.' : 'Say it out loud to move on.'}
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <Button fullWidth size="md" onClick={chooseVoice}>🎤 I can say it now</Button>
-                        <Button fullWidth size="md" variant="secondary" onClick={chooseTap}>🤫 I can&apos;t talk now</Button>
-                      </div>
-                      <p className="text-slate-500 font-nunito text-xs mt-3">If you can&apos;t talk, you will tap the answer instead.</p>
-                    </div>
-                  )}
-
-                  {sayState === 'practice' && sayTarget && (
-                    <div className="w-full bg-white rounded-3xl p-6 border-2 border-slate-200 border-b-4 border-slate-300 shadow-lg">
-                      <p className="text-center text-[#1d2445] font-nunito font-black text-lg mb-1">{sayTarget.instruction}</p>
-                      {sayTarget.kind !== 'letter' && sayTarget.kind !== 'number' && (
-                        <p className="text-center text-[#10b981] font-nunito text-sm mb-2">&ldquo;{sayTarget.expected}&rdquo;</p>
-                      )}
-                      <div className="flex justify-center mb-3">
-                        <Button variant="secondary" size="sm" className="gap-2" onClick={modelThenListen}><Volume2 size={14} /> Hear it again</Button>
-                      </div>
-                      <MicrophonePanel
-                        key={practiceKey}
-                        expected={sayTarget.expected}
-                        localGrade={sayGrade}
-                        onResult={handleSayResult}
-                        onSkip={chooseTap}
-                        subject="general"
-                        ageGroup={ageGroup}
-                        childName={childName}
-                        autoStart={micAutoStart}
-                      />
-                      {sayTries >= 1 && (
-                        <button onClick={chooseTap} className="block mx-auto mt-3 text-slate-400 hover:text-[#1d2445] font-nunito text-xs underline">I can&apos;t talk right now, let me tap instead</button>
-                      )}
-                    </div>
-                  )}
-
-                  {voiceNote && sayVia === 'tap' && sayState === 'identify' && (
-                    <p className="text-yellow-300/90 font-nunito text-xs text-center">This browser can&apos;t listen to your voice. Use Google Chrome or Edge to say answers out loud. For now, tap the answer.</p>
-                  )}
-                  {(sayState === 'identify' || (sayVia === 'tap' && sayDone)) && identifyQ && (
-                    <div className="w-full bg-white rounded-3xl p-6 border-2 border-slate-200 border-b-4 border-slate-300 shadow-lg">
-                      <p className="text-center text-[#1d2445] font-nunito font-black text-xl mb-4">{identifyQ.question}</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        {identifyQ.options.map(o => {
-                          const right = sayDone ? o === identifyQ.correct : false
-                          const wrong = !sayDone && identifyPicked === o && o !== identifyQ.correct
-                          return (
-                            <motion.button key={o} whileTap={{ scale: 0.97 }} disabled={sayDone} onClick={() => handleIdentify(o)}
-                              className={`p-4 rounded-2xl border-2 text-[#1d2445] font-black font-nunito text-xl min-h-[64px] transition-all ${
-                                right ? 'border-emerald-500 bg-emerald-50 text-emerald-950 border-b-4 border-b-emerald-600' : wrong ? 'border-rose-400 bg-rose-50 text-rose-950 border-b-4 border-b-rose-600' : 'border-slate-200 bg-white hover:bg-slate-50 text-[#1d2445] border-b-4 border-b-slate-300 shadow-sm'}`}>
-                              {o}
-                            </motion.button>
-                          )
-                        })}
-                      </div>
-                      <div className="flex justify-center mt-3">
-                        <Button variant="ghost" size="sm" onClick={() => speak(identifyQ.spoken)} className="gap-2"><Volume2 size={14} /> Hear the question</Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {sayDone && feedbackLine && (
-                    <p className={`font-extrabold font-nunito text-center ${sayState === 'passed' ? 'text-[#10b981]' : 'text-slate-300'}`}>{feedbackLine}</p>
-                  )}
-                </>
-              )
-
-              const listenControls = (
-                <>
-                  {sayBlock}
-                  <div className="flex gap-3 w-full mt-1">
-                    <Button variant="secondary" size="md" onClick={handleListenAgain} className="gap-2 flex-shrink-0">
-                      <RotateCcw size={16} /> Listen Again
-                    </Button>
-                    <Button fullWidth size="md" onClick={handleListenContinue} className="gap-2" disabled={!sayDone}>
-                      {!listenDone ? 'Listen first' : sayState === 'ask' ? 'Your turn first' : sayDone ? 'Next' : 'Finish this first'} <ChevronRight size={18} />
-                    </Button>
-                  </div>
-                  {(!listenDone || sayState === 'idle') && (
-                    <button type="button" onClick={() => afterListenRef.current()} className="text-xs text-slate-500 hover:text-[#1d2445] font-nunito font-bold underline mt-2 block mx-auto py-1">
-                      Skip audio / I&apos;m ready to practice
-                    </button>
-                  )}
-                </>
-              )
-
-              // ── Single letter card (e.g. "A is for Apple 🍎") ──────────
-              if (letter) return (
-                <div className="w-full flex flex-col items-center gap-5">
-                  <div className="flex items-center gap-2 bg-blue-100 border-2 border-blue-200 rounded-full px-4 py-1.5 shadow-xs">
-                    <Volume2 size={15} className="text-blue-600" />
-                    <span className="text-blue-950 font-black font-nunito text-xs uppercase tracking-widest">Listen and learn</span>
-                  </div>
+              return (
+                <div className="w-full flex flex-col items-center gap-2 sm:gap-2.5">
+                  {/* Section 1: Clean Hero Visual Card (Fits Screen Geometry) */}
                   <motion.div
-                    initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                    className="bg-white rounded-3xl p-8 w-full border-2 border-slate-200 border-b-[6px] border-b-slate-300 shadow-xl flex flex-col items-center gap-4 text-[#1d2445]"
+                    key={String(num ?? word ?? 'hero')}
+                    initial={{ scale: 0.95, opacity: 0, y: 12 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+                    className="w-full max-w-md bg-[#18252d] rounded-2xl sm:rounded-3xl p-3 sm:p-4 border-2 border-[#2e3e48] border-b-4 border-b-[#233139] shadow-lg flex flex-col items-center text-center relative"
                   >
-                    <span className="text-[120px] sm:text-[160px] font-extrabold text-[#10b981] font-nunito leading-none">{letter.toUpperCase()}</span>
-                    {img ? <ActivityImage path={img} alt={word ?? ''} /> : visual && <span className="text-6xl">{visual}</span>}
-                    {word && (
-                      <p className="text-[#1d2445] font-black font-nunito text-2xl">
-                        <span className="text-[#10b981]">{letter.toUpperCase()}</span> is for <span className="text-[#10b981]">{word}</span>
-                      </p>
+                    {/* Teacher Definition Badge */}
+                    {teach.definition && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-extrabold text-[11px] sm:text-xs mb-1 shadow-xs"
+                      >
+                        <span>💡</span>
+                        <span>Meaning: {teach.definition}</span>
+                      </motion.div>
                     )}
-                    {!!c.audio_hint && <p className="text-slate-500 font-bold font-nunito text-sm italic">"{String(c.audio_hint)}"</p>}
-                  </motion.div>
-                  {listenControls}
-                </div>
-              )
 
-              // ── Single number card (e.g. "3 — Three 🍎🍎🍎") ────────────
-              if (num !== undefined) return (
-                <div className="w-full flex flex-col items-center gap-5">
-                  <div className="flex items-center gap-2 bg-blue-100 border-2 border-blue-200 rounded-full px-4 py-1.5 shadow-xs">
-                    <Volume2 size={15} className="text-blue-600" />
-                    <span className="text-blue-950 font-black font-nunito text-xs uppercase tracking-widest">Listen and count</span>
-                  </div>
-                  <motion.div
-                    initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                    className="bg-white rounded-3xl p-8 w-full border-2 border-slate-200 border-b-[6px] border-b-slate-300 shadow-xl flex flex-col items-center gap-4 text-[#1d2445]"
-                  >
-                    <span className="text-[120px] sm:text-[160px] font-extrabold text-[#10b981] font-nunito leading-none">{num}</span>
-                    {word && <p className="text-[#1d2445] font-black font-nunito text-4xl capitalize">{word}</p>}
-                    {img ? <ActivityImage path={img} alt={word ?? ''} /> : objects && (
-                      <div className="flex flex-wrap gap-2 justify-center text-4xl mt-2">
-                        {objects.map((o, i) => <motion.span key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.12 }}>{o}</motion.span>)}
-                      </div>
-                    )}
-                    {!!c.audio_hint && <p className="text-slate-500 font-bold font-nunito text-sm italic mt-2">"{String(c.audio_hint)}"</p>}
-                  </motion.div>
-                  {listenControls}
-                </div>
-              )
-
-              // ── Number sequence row (e.g. 1 2 3 4 5) ────────────────────
-              if (numberPairs) return (
-                <div className="w-full flex flex-col items-center gap-5">
-                  <div className="flex items-center gap-2 bg-blue-100 border-2 border-blue-200 rounded-full px-4 py-1.5 shadow-xs">
-                    <Volume2 size={15} className="text-blue-600" />
-                    <span className="text-blue-950 font-black font-nunito text-xs uppercase tracking-widest">Count along</span>
-                  </div>
-                  {img && <ActivityImage path={img} />}
-                  <div className="bg-white rounded-3xl p-6 w-full border-2 border-slate-200 border-b-[6px] border-b-slate-300 shadow-xl text-[#1d2445]">
-                    <div className="flex justify-center gap-3 flex-wrap">
-                      {numberPairs.map(({ word: w, numeral }, idx) => {
-                        const active = highlightIndex === idx
-                        return (
-                        <motion.div key={numeral}
-                          initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: active ? 1.12 : 1 }}
-                          transition={{ delay: highlightIndex === -1 ? numeral * 0.1 : 0, type: 'spring', stiffness: 260, damping: 20 }}
-                          className={`flex flex-col items-center gap-1.5 rounded-2xl px-4 py-4 min-w-[64px] border-2 transition-colors ${
-                            active
-                              ? 'bg-[#4ade80]/20 border-[#4ade80] shadow-lg shadow-green-500/20'
-                              : 'bg-slate-50 border-transparent'
-                          }`}
+                    {num !== undefined && (
+                      <>
+                        <motion.div
+                          animate={
+                            highlightNumber
+                              ? {
+                                  scale: [1, 1.35, 1.25],
+                                  filter: [
+                                    'drop-shadow(0 0 0px rgba(88,204,2,0))',
+                                    'drop-shadow(0 0 24px rgba(88,204,2,0.95))',
+                                    'drop-shadow(0 0 16px rgba(88,204,2,0.75))',
+                                  ],
+                                }
+                              : { scale: 1, filter: 'drop-shadow(0 0 0px rgba(0,0,0,0))' }
+                          }
+                          transition={
+                            highlightNumber
+                              ? { duration: 0.65, ease: 'easeOut' }
+                              : { duration: 0.3 }
+                          }
+                          onClick={() => {
+                            setHighlightNumber(true)
+                            speak(teach.reveal)
+                            setTimeout(() => setHighlightNumber(false), 2500)
+                          }}
+                          className="relative inline-flex items-center justify-center my-1 cursor-pointer select-none"
+                          title={`Tap to hear: ${teach.reveal}`}
                         >
-                          <span className={`text-4xl sm:text-5xl font-extrabold font-nunito leading-none ${active ? 'text-emerald-950 font-black' : 'text-[#10b981] font-black'}`}>{numeral}</span>
-                          <span className={`font-bold font-nunito text-xs capitalize ${active ? 'text-emerald-700 font-black' : 'text-slate-600 font-bold'}`}>{w}</span>
+                          <span className="text-5xl sm:text-6xl font-black text-[#58cc02] leading-none select-none tracking-tight">
+                            {num}
+                          </span>
+                          {highlightNumber && (
+                            <motion.span
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+                              transition={{ duration: 0.35 }}
+                              className="absolute -top-2 -right-5 text-2xl sm:text-3xl animate-bounce"
+                            >
+                              ✨
+                            </motion.span>
+                          )}
                         </motion.div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                  {!!c.audio_hint && <p className="text-slate-500 font-bold font-nunito text-sm italic">"{String(c.audio_hint)}"</p>}
-                  {listenControls}
-                </div>
-              )
+                        {word && <h3 className="text-xl sm:text-2xl font-black text-white capitalize leading-tight mb-1">{word}</h3>}
+                      </>
+                    )}
 
-              // ── Plain text / concept explanation ─────────────────────────
-              const badge = colonIdx >= 0 ? fullPrompt.slice(0, colonIdx).trim() : 'Listen'
-              return (
-                <div className="w-full flex flex-col items-center gap-5">
-                  <div className="flex items-center gap-2 bg-blue-100 border-2 border-blue-200 rounded-full px-4 py-1.5 shadow-xs">
-                    <Volume2 size={15} className="text-blue-600" />
-                    <span className="text-blue-950 font-black font-nunito text-xs uppercase tracking-widest">{badge}</span>
-                  </div>
-                  <div className="bg-white rounded-3xl p-8 text-center w-full border-2 border-slate-200 border-b-[6px] border-b-slate-300 shadow-xl flex flex-col items-center gap-5 text-[#1d2445]">
-                    {img && <ActivityImage path={img} />}
-                    <p className="text-2xl sm:text-3xl font-black text-[#1d2445] font-nunito leading-snug">{img ? stripEmoji(contentPart) : contentPart}</p>
-                    {!!c.audio_hint && <p className="text-slate-500 font-bold font-nunito text-sm mt-4 italic">"{String(c.audio_hint)}"</p>}
-                  </div>
-                  {listenControls}
+                    {/* Section 2: Concrete Object Example — animates in during phrase2, identify, completed */}
+                    <AnimatePresence>
+                      {(listenPhase === 'phrase2' || listenPhase === 'identify' || listenPhase === 'completed') && (
+                        <motion.div
+                          key="concrete-objects"
+                          initial={{ opacity: 0, scale: 0.3, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={{ type: 'spring', damping: 12, stiffness: 240 }}
+                          className="w-full flex flex-col items-center gap-1 my-1 p-2 bg-white/5 rounded-2xl border border-white/10 shadow-inner"
+                        >
+                          {img ? (
+                            <ActivityImage path={img} alt={word ?? ''} size="md" />
+                          ) : objects ? (
+                            <div className="flex flex-wrap gap-2.5 justify-center text-3xl sm:text-4xl my-0.5">
+                              {objects.map((o, idx) => (
+                                <motion.span
+                                  key={idx}
+                                  initial={{ scale: 0, rotate: -25 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  transition={{ delay: idx * 0.12, type: 'spring', damping: 10 }}
+                                  className="inline-block hover:scale-110 transition-transform select-none"
+                                >
+                                  {o}
+                                </motion.span>
+                              ))}
+                            </div>
+                          ) : null}
+                          {teach.example && (
+                            <p className="text-emerald-300 font-black text-xs sm:text-sm">
+                              {teach.example}
+                            </p>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+
+                  {/* Section 2: Kinesthetic Action Callout during Phrase 2 */}
+                  <AnimatePresence>
+                    {listenPhase === 'phrase2' && (
+                      <motion.div
+                        key="phrase2-callout"
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                        transition={{ type: 'spring', damping: 15 }}
+                        className="flex items-center gap-2 bg-amber-500/15 border border-amber-400/30 text-amber-300 px-3.5 py-1.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-xs"
+                      >
+                        <span className="text-lg animate-bounce">☝️</span>
+                        <span>{teach.actionPrompt}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Fast bypass option during narration for convenience */}
+                  {listenPhase !== 'identify' && listenPhase !== 'completed' && (
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.8 }}
+                      type="button"
+                      onClick={() => setListenPhase('identify')}
+                      className="text-xs text-slate-500 hover:text-slate-300 font-bold underline transition-colors"
+                    >
+                      Skip audio to question 👉
+                    </motion.button>
+                  )}
+
+                  {/* Section 3: 3 Duolingo-style Identification Options — SHOWS LAST WITH STAGGERED ANIMATION */}
+                  <AnimatePresence>
+                    {(listenPhase === 'identify' || listenPhase === 'completed') && (
+                      <motion.div
+                        key="identify-options-list"
+                        initial={{ opacity: 0, y: 18, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+                        className="w-full max-w-md flex flex-col items-center"
+                      >
+                        <div className="flex items-center justify-between w-full mb-1.5 px-1">
+                          <motion.p
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="text-xs font-black uppercase tracking-wider text-slate-400"
+                          >
+                            {listenCorrect ? '✨ You found it!' : '👉 Tap the correct answer:'}
+                          </motion.p>
+                          {!listenCorrect && (
+                            <button
+                              onClick={handleListenAgain}
+                              className="text-xs text-slate-400 hover:text-white font-black flex items-center gap-1.5 transition-colors"
+                            >
+                              <RotateCcw size={13} />
+                              <span>Hear again</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2.5 sm:gap-3 w-full">
+                          {teach.options.map((opt, idx) => {
+                            const isPicked = listenSelection === opt.id
+                            const isTarget = opt.correct
+                            const showSuccess = listenCorrect && isTarget
+                            const showWrong = !listenCorrect && isPicked && !isTarget
+
+                            return (
+                              <motion.button
+                                key={opt.id}
+                                type="button"
+                                initial={{ opacity: 0, y: 16, scale: 0.88 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{
+                                  delay: 0.1 + idx * 0.08,
+                                  type: 'spring',
+                                  damping: 14,
+                                  stiffness: 220,
+                                }}
+                                whileHover={!listenCorrect ? { scale: 1.04 } : {}}
+                                whileTap={!listenCorrect ? { scale: 0.95 } : {}}
+                                disabled={listenCorrect}
+                                onClick={() => handleListenPick(opt)}
+                                className={`p-2.5 sm:p-3 rounded-2xl border-2 font-black text-xl sm:text-2xl transition-colors flex flex-col items-center justify-center gap-0.5 text-center relative min-h-[64px] sm:min-h-[76px] cursor-pointer ${
+                                  showSuccess
+                                    ? 'border-[#58cc02] bg-[#1a3328] border-b-4 border-b-[#46a302] text-[#4ade80] shadow-md ring-2 ring-[#58cc02]/30'
+                                    : showWrong
+                                    ? 'border-[#ef4444] bg-[#37161b] border-b-4 border-b-[#b91c1c] text-[#fca5a5]'
+                                    : isPicked
+                                    ? 'border-[#58cc02] bg-[#1a3328] border-b-4 border-b-[#46a302] text-[#4ade80]'
+                                    : 'border-[#2e3e48] bg-[#18252d] hover:bg-[#202f37] hover:border-[#384c58] border-b-4 border-b-[#233139] text-white active:translate-y-1 active:border-b-2'
+                                }`}
+                              >
+                                <div className="flex flex-col items-center justify-center">
+                                  <span className="text-2xl sm:text-3xl font-black">{opt.text}</span>
+                                  {showSuccess && (
+                                    <motion.span
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      transition={{ type: 'spring', damping: 10 }}
+                                      className="mt-0.5 flex items-center gap-1 text-[11px] font-black text-[#58cc02]"
+                                    >
+                                      <Check size={14} strokeWidth={3} />
+                                      <span>Correct!</span>
+                                    </motion.span>
+                                  )}
+                                </div>
+                                <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-md border border-slate-700 bg-black/20 flex items-center justify-center text-[9px] font-black text-slate-400">
+                                  {idx + 1}
+                                </span>
+                              </motion.button>
+                            )
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )
             })()}
 
-            {act.type === 'speak' && (() => {
-              const c = act.content as unknown as Record<string, unknown>
-              return (
-                <>
-                <div className="bg-white rounded-3xl p-8 text-center w-full border-2 border-slate-200 border-b-[6px] border-b-slate-300 shadow-xl flex flex-col items-center gap-5 text-[#1d2445]">
-                  {activityImage(c) && <ActivityImage path={activityImage(c)!} />}
-                  <div className="text-4xl sm:text-6xl font-extrabold text-[#1d2445] font-nunito">
-                    {activityImage(c) ? stripEmoji(String(c.prompt ?? '')) : String(c.prompt ?? '')}
-                  </div>
-                </div>
-                {answerState === 'idle' && (
-                  <MicrophonePanel
-                    expected={String((act.content as unknown as Record<string, unknown>).expected ?? '')}
-                    onResult={handleSpeechResult}
-                    onSkip={() => {
-                      // Award half XP and continue when voice isn't available
-                      resultRef.current = { passed: false, score: 40, wrongs: resultRef.current.wrongs }
-                      award(currentActivity, Math.floor(getXP(currentActivity) * 0.5))
-                      handleNext()
-                    }}
-                    subject={(lesson as unknown as { subject?: { slug: string } }).subject?.slug ?? 'general'}
-                    ageGroup={ageGroup}
-                    childName={child?.name ?? 'friend'}
-                    autoStart={micAutoStart}
-                  />
-                )}
-              </>
-            )
-            })()}
-
+            {/* 2. MULTIPLE CHOICE TAP ACTIVITY (DUOLINGO STYLE) */}
             {act.type === 'tap_answer' && (() => {
               const tapContent = act.content as unknown as Record<string, unknown>
               const options = normalizeTapOptions(tapContent)
               return (
-                <>
-                  {activityImage(tapContent) && <ActivityImage path={activityImage(tapContent)!} />}
-                  <div className="text-[#1d2445] font-black text-2xl font-nunito text-center w-full">
+                <div className="w-full flex flex-col items-center">
+                  <motion.h2
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="text-xl sm:text-2xl font-black text-white text-center mb-3 sm:mb-4"
+                  >
                     {activityImage(tapContent) ? stripEmoji(String(tapContent.question ?? '')) : String(tapContent.question ?? '')}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 w-full">
-                    {options.map(opt => {
+                  </motion.h2>
+
+                  {/* Options List — Animates in Last with Staggered Pop */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5 w-full max-w-lg"
+                  >
+                    {options.map((opt, idx) => {
                       const isSelected = selected === opt.id
                       const showResult = answerState !== 'idle' && isSelected
                       return (
                         <motion.button
                           key={opt.id}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => handleTapAnswer(opt)}
+                          initial={{ opacity: 0, y: 16, scale: 0.92 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ delay: 0.12 + idx * 0.08, type: 'spring', damping: 15, stiffness: 220 }}
+                          whileHover={answerState === 'idle' ? { scale: 1.03 } : {}}
+                          whileTap={answerState === 'idle' ? { scale: 0.96 } : {}}
                           disabled={answerState !== 'idle'}
-                          className={`p-5 rounded-2xl border-2 font-black font-nunito text-lg transition-all min-h-[80px] flex flex-col items-center justify-center gap-2 ${
-                            showResult && opt.correct ? 'border-[#4ade80] bg-[#4ade80]/20'
-                            : showResult && !opt.correct ? 'border-red-500 bg-red-500/20'
-                            : 'border-slate-200 bg-white hover:border-white/40'
+                          onClick={() => {
+                            if (answerState !== 'idle') return
+                            setSelected(opt.id)
+                          }}
+                          className={`p-3 sm:p-4 rounded-2xl border-2 font-black text-base sm:text-lg transition-colors flex flex-col items-center justify-between gap-2 text-center relative min-h-[72px] sm:min-h-[88px] ${
+                            showResult && opt.correct
+                              ? 'border-[#58cc02] bg-[#1a3328] border-b-4 border-b-[#46a302] text-[#4ade80]'
+                              : showResult && !opt.correct
+                              ? 'border-[#ef4444] bg-[#37161b] border-b-4 border-b-[#b91c1c] text-[#fca5a5]'
+                              : isSelected
+                              ? 'border-[#58cc02] bg-[#1a3328] border-b-4 border-b-[#46a302] text-[#4ade80] shadow-md'
+                              : 'border-[#2e3e48] bg-[#18252d] hover:bg-[#202f37] hover:border-[#384c58] border-b-4 border-b-[#233139] text-white active:translate-y-1 active:border-b-2'
                           }`}
                         >
-                          {optionImages(tapContent)[opt.text] && <ActivityImage path={optionImages(tapContent)[opt.text]} alt={opt.text} size="md" />}
-                          {opt.text}
+                          <div className="flex-1 flex flex-col items-center justify-center gap-1.5 w-full">
+                            {optionImages(tapContent)[opt.text] && (
+                              <ActivityImage path={optionImages(tapContent)[opt.text]} alt={opt.text} size="sm" />
+                            )}
+                            <span className="text-xl sm:text-2xl font-black">{opt.text}</span>
+                          </div>
+                          <span className="w-5 h-5 rounded-md border border-slate-700 bg-black/20 flex items-center justify-center text-[10px] font-black text-slate-400 self-end">
+                            {idx + 1}
+                          </span>
                         </motion.button>
                       )
                     })}
-                  </div>
-                </>
+                  </motion.div>
+                </div>
               )
             })()}
 
-            {act.type === 'type_answer' && (
-              <>
-                {activityImage(act.content as unknown as Record<string, unknown>) && <ActivityImage path={activityImage(act.content as unknown as Record<string, unknown>)!} />}
-                <div className="text-[#1d2445] font-black text-2xl font-nunito text-center w-full">
-                  {(act.content as TypeAnswerContent).question}
+            {/* 3. SPEAKING ACTIVITY (DUOLINGO TALK-BACK EXPERIENCE) */}
+            {act.type === 'speak' && (() => {
+              const c = act.content as unknown as Record<string, unknown>
+              const num = c.number !== undefined ? Number(c.number) : null
+              const word = String(c.word ?? (num !== null ? String(num) : c.prompt ?? '')).trim()
+              const targetWord = word.replace(/^say:?\s*/i, '').replace(/[!.]/g, '')
+              const objects = c.objects as string[] | undefined
+              const img = activityImage(c)
+              const expectedStr = String(c.expected ?? targetWord).toLowerCase().trim()
+
+              const gradeSpokenAnswer = (transcript: string) => {
+                const normText = transcript.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim()
+                const words = normText.split(/\s+/).filter(Boolean)
+
+                if (num !== null) {
+                  const NUMBER_ALTS: Record<number, string[]> = {
+                    1: ['1', 'one', 'won', 'wan', 'on', 'juan', 'first', 'wun', 'when', 'run', 'un'],
+                    2: [
+                      '2', 'two', 'to', 'too', 'tu', 'do', 'due', 'dew', 'dou', 'toe', 
+                      'true', 'through', 'threw', 'chew', 'choo', 'shoe', 'shoo', 'who', 
+                      'you', 'u', 'new', 'no', 'so', 'cool', 'tube', 'tool', 'tooth', 'second',
+                      'to to', 'too too', 'two two'
+                    ],
+                    3: ['3', 'three', 'tree', 'free', 'thee', 'tri', 'third', 'thre', 'threat', 'see', 'tea'],
+                    4: ['4', 'four', 'for', 'fore', 'pour', 'ford', 'fourth', 'door', 'floor'],
+                    5: ['5', 'five', 'hive', 'fi', 'fiv', 'fifth', 'fine'],
+                  }
+                  const alts = NUMBER_ALTS[num] ?? [String(num)]
+                  const matched = words.some(w => alts.includes(w)) || alts.some(a => normText.includes(a)) || words.includes(String(num))
+                  if (matched) {
+                    return { passed: true, score: 100, feedback: 'Super job! You said it!' }
+                  }
+                }
+
+                const fallback = fallbackGradeSpeech({ expected: expectedStr, transcript, childName: child?.name ?? 'friend' })
+                return { passed: fallback.passed, score: fallback.score, feedback: fallback.feedback }
+              }
+
+              // Fallback options if child prefers to tap instead of talking
+              const tapOptions = num !== null
+                ? ['1', '2', '3']
+                : [targetWord, '2', '3']
+
+              return (
+                <div className="w-full flex flex-col items-center gap-2 sm:gap-2.5">
+                  {/* Duolingo Question Header */}
+                  <div className="text-center max-w-lg">
+                    <motion.h2
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="text-xl sm:text-2xl font-black text-white leading-tight mb-1"
+                    >
+                      {num !== null ? `Say the number ${num} out loud` : `Say the word "${targetWord}" out loud`}
+                    </motion.h2>
+                  </div>
+
+                  {/* Clean Hero Visual Card */}
+                  <motion.div
+                    key={String(num ?? targetWord)}
+                    initial={{ scale: 0.95, opacity: 0, y: 12 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', damping: 18 }}
+                    className="w-full max-w-md bg-[#18252d] rounded-2xl sm:rounded-3xl p-3 sm:p-4 border-2 border-[#2e3e48] border-b-4 border-b-[#233139] shadow-lg flex flex-col items-center text-center relative"
+                  >
+                    {/* Hear Pip again pill button */}
+                    <button
+                      type="button"
+                      onClick={() => speak(num !== null ? `Say the number ${num} out loud!` : `Say the word: ${targetWord}!`)}
+                      className="mb-1.5 px-3 py-1 bg-[#24333b] hover:bg-[#2c3d47] border-2 border-[#324550] border-b-4 border-b-[#1c2930] rounded-xl flex items-center gap-1.5 text-slate-200 font-black text-xs uppercase tracking-wider active:translate-y-0.5 cursor-pointer transition-all"
+                    >
+                      <Volume2 size={15} className="text-[#58cc02]" />
+                      <span>Hear Pip Say It</span>
+                    </button>
+
+                    {num !== null && (
+                      <span className="text-5xl sm:text-6xl font-black text-[#58cc02] leading-none mb-1 select-none">
+                        {num}
+                      </span>
+                    )}
+
+                    {img ? (
+                      <ActivityImage path={img} alt={targetWord} size="md" />
+                    ) : objects ? (
+                      <div className="flex flex-wrap gap-2.5 justify-center text-3xl sm:text-4xl my-1">
+                        {objects.map((o, idx) => (
+                          <motion.span
+                            key={idx}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: idx * 0.12, type: 'spring' }}
+                          >
+                            {o}
+                          </motion.span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <div className="text-2xl sm:text-3xl font-black text-white mt-1">
+                      &ldquo;{targetWord}&rdquo;
+                    </div>
+                  </motion.div>
+
+                  {/* Interactive Speaking Panel or Tap Fallback — Animates in Last */}
+                  {answerState === 'idle' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 16, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.15, type: 'spring', damping: 16 }}
+                      className="w-full max-w-md flex flex-col items-center"
+                    >
+                      {!speakTapFallback ? (
+                        <>
+                          <MicrophonePanel
+                            expected={expectedStr}
+                            localGrade={gradeSpokenAnswer}
+                            onResult={handleSpeechResult}
+                            onSkip={() => setSpeakTapFallback(true)}
+                            subject="general"
+                            ageGroup={ageGroup}
+                            childName={child?.name ?? 'friend'}
+                            autoStart={micAutoStart}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setSpeakTapFallback(true)}
+                            className="mt-2 text-xs font-black text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                          >
+                            Can&apos;t talk right now? Tap the answer instead
+                          </button>
+                        </>
+                      ) : (
+                        <div className="w-full flex flex-col items-center gap-2">
+                          <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                            👉 Tap the matching number:
+                          </p>
+                          <div className="grid grid-cols-3 gap-2.5 w-full">
+                            {tapOptions.map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => {
+                                  if (opt === String(num ?? targetWord) || opt.toLowerCase() === targetWord.toLowerCase()) {
+                                    handleCorrect(getXP(currentActivity))
+                                  } else {
+                                    handleWrong()
+                                  }
+                                }}
+                                className="py-3 px-4 rounded-2xl border-2 border-[#2e3e48] border-b-4 border-b-[#233139] bg-[#18252d] hover:bg-[#202f37] text-white font-black text-xl active:translate-y-0.5"
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
                 </div>
+              )
+            })()}
+
+            {/* 4. TYPE ANSWER ACTIVITY */}
+            {act.type === 'type_answer' && (
+              <div className="w-full flex flex-col items-center">
+                <h2 className="text-2xl sm:text-3xl font-black text-white text-center mb-6">
+                  {(act.content as TypeAnswerContent).question}
+                </h2>
                 <input
                   type="text"
                   value={typedAnswer}
                   onChange={e => setTypedAnswer(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleTypeSubmit()}
                   disabled={answerState !== 'idle'}
-                  placeholder="Type your answer..."
-                  className="w-full bg-white border-2 border-slate-300 border-b-4 border-slate-400 focus:border-[#10b981] rounded-2xl px-5 py-4 text-[#1d2445] font-nunito font-black text-2xl outline-none shadow-sm transition-all"
+                  placeholder="Type your answer here..."
+                  className="w-full max-w-lg bg-[#18252d] border-2 border-[#2e3e48] border-b-[5px] border-b-[#233139] focus:border-[#58cc02] focus:border-b-[#46a302] rounded-3xl px-6 py-4 text-white font-black text-2xl outline-none shadow-inner transition-all text-center"
                   autoFocus
                 />
-                {answerState === 'idle' && (
-                  <Button fullWidth size="lg" onClick={handleTypeSubmit} disabled={!typedAnswer.trim()}>
-                    Check Answer
-                  </Button>
-                )}
-              </>
-            )}
-
-            {act.type === 'drag_drop' && (() => {
-              const c = act.content as unknown as { prompt?: string; pairs?: Array<{ id: string; item: string; target: string }> }
-              return (
-                <MatchActivity
-                  key={`${act.id}-${attempts}`}
-                  prompt={c.prompt}
-                  pairs={c.pairs ?? []}
-                  disabled={answerState !== 'idle'}
-                  onComplete={ok => (ok ? handleCorrect(getXP(act)) : handleWrong())}
-                />
-              )
-            })()}
-
-            {act.type === 'video' && (
-              <div className="w-full">
-                <video
-                  className="w-full rounded-2xl bg-black"
-                  controls
-                  onEnded={() => setVideoEnded(true)}
-                >
-                  <source src="" type="video/mp4" />
-                  Video not available.
-                </video>
-                {!videoEnded && <p className="text-center text-slate-400 text-sm mt-2 font-nunito">Watch the video to continue</p>}
               </div>
             )}
 
-            {answerState !== 'idle' && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`w-full rounded-2xl p-5 border ${
-                  answerState === 'correct'
-                    ? 'bg-[#22c55e]/10 border-[#22c55e]/30'
-                    : 'bg-red-500/10 border-red-500/30'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className={`font-extrabold font-nunito text-lg ${answerState === 'correct' ? 'text-[#10b981]' : 'text-red-400'}`}>
-                      {feedbackLine ?? (answerState === 'correct' ? 'Correct!' : 'Not quite!')}
-                    </div>
-                    {answerState === 'wrong' && (
-                      <div className="text-rose-900 font-extrabold text-sm font-nunito mt-1">
-                        {(() => {
-                          if (attempts < 1) return 'Try again!'
-                          const c = act.content as unknown as Record<string, unknown>
-                          const correctAns = act.type === 'tap_answer'
-                            ? normalizeTapOptions(c).find(o => o.correct)?.text ?? ''
-                            : String(c.expected ?? c.correct ?? '')
-                          return `The answer is: ${correctAns}`
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                  <XPCounter earned={xpEarned} visible={answerState === 'correct' && showXP} />
+            {/* 5. MATCH ACTIVITY */}
+            {act.type === 'drag_drop' && (() => {
+              const c = act.content as unknown as { prompt?: string; pairs?: Array<{ id: string; item: string; target: string }> }
+              return (
+                <div className="w-full">
+                  <MatchActivity
+                    key={`${act.id}-${attempts}`}
+                    prompt={c.prompt}
+                    pairs={c.pairs ?? []}
+                    disabled={answerState !== 'idle'}
+                    onComplete={ok => (ok ? handleCorrect(getXP(act)) : handleWrong())}
+                  />
                 </div>
-                {(answerState === 'correct' || attempts >= 2) && (
-                  <Button className="mt-4 w-full" size="lg" onClick={handleNext}>
-                    Continue <ChevronRight size={20} />
-                  </Button>
-                )}
-                {answerState === 'wrong' && attempts < 2 && (
-                  <Button variant="secondary" className="mt-3 w-full" size="md" onClick={() => { setAnswerState('idle'); setSelected(null) }}>
-                    Try Again
-                  </Button>
-                )}
-              </motion.div>
-            )}
-
-            {act.type === 'video' && videoEnded && answerState === 'idle' && (
-              <Button fullWidth size="lg" onClick={() => handleCorrect(getXP(act))}>
-                Continue <ChevronRight size={20} />
-              </Button>
-            )}
-
+              )
+            })()}
           </motion.div>
         </AnimatePresence>
-      </div>
+      </main>
+
+      {/* ── DUOLINGO FIXED BOTTOM ACTION BAR ─────────────────────── */}
+      <footer
+        className={`fixed bottom-0 left-0 right-0 z-40 py-2.5 sm:py-3 px-4 sm:px-12 border-t-2 transition-colors duration-200 ${
+          isCorrect
+            ? 'bg-[#132d20] border-[#235035]'
+            : isWrong
+            ? 'bg-[#38161b] border-[#68232c]'
+            : 'bg-[#131f24] border-[#233139]'
+        }`}
+      >
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          
+          {/* Left Side: Secondary action or Feedback state */}
+          <div className="flex items-center gap-3.5 min-w-0">
+            {isCorrect && (
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-[#1e462b] flex items-center justify-center text-[#4ade80] text-2xl font-black shadow-xs flex-shrink-0 border border-[#2d6a42]">
+                  <Check size={26} strokeWidth={3.5} />
+                </div>
+                <div>
+                  <p className="text-xl font-black text-[#4ade80] leading-none mb-0.5">Nicely done!</p>
+                  <p className="text-xs sm:text-sm font-extrabold text-emerald-300">+{xpEarned} XP • {feedbackLine}</p>
+                </div>
+              </div>
+            )}
+
+            {isWrong && (
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-[#4a1d24] flex items-center justify-center text-[#f87171] text-2xl font-black shadow-xs flex-shrink-0 border border-[#6b2933]">
+                  <X size={26} strokeWidth={3.5} />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-[#fca5a5] uppercase tracking-wider leading-none mb-1">Correct solution:</p>
+                  <p className="text-base sm:text-lg font-black text-white">
+                    {(() => {
+                      const c = act.content as unknown as Record<string, unknown>
+                      if (act.type === 'tap_answer') {
+                        return normalizeTapOptions(c).find(o => o.correct)?.text ?? ''
+                      }
+                      return String(c.expected ?? c.correct ?? '')
+                    })()}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!isCorrect && !isWrong && (
+              <>
+                {act.type === 'listen' ? (
+                  <button
+                    onClick={handleListenAgain}
+                    className="px-4 sm:px-6 py-3 rounded-2xl border-2 border-[#324550] border-b-4 border-b-[#1c2930] bg-[#24333b] hover:bg-[#2c3d47] text-slate-200 font-black text-xs sm:text-sm uppercase tracking-wider active:translate-y-0.5 flex items-center gap-2"
+                  >
+                    <RotateCcw size={16} strokeWidth={2.5} />
+                    <span>Listen Again</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      // Skip question
+                      resultRef.current = { passed: false, score: 30, wrongs: resultRef.current.wrongs + 1 }
+                      handleNext()
+                    }}
+                    className="px-4 sm:px-6 py-3 rounded-2xl border-2 border-[#324550] border-b-4 border-b-[#1c2930] bg-[#24333b] hover:bg-[#2c3d47] text-slate-300 font-black text-xs sm:text-sm uppercase tracking-wider active:translate-y-0.5"
+                  >
+                    Skip
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Right Side: Primary CHECK or CONTINUE Button */}
+          <div>
+            {isCorrect || isWrong ? (
+              <button
+                onClick={handleNext}
+                className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider text-white shadow-sm transition-all active:translate-y-1 active:border-b-2 ${
+                  isCorrect
+                    ? 'bg-[#58cc02] hover:bg-[#46a302] border-2 border-[#58cc02] border-b-4 border-b-[#46a302]'
+                    : 'bg-[#ef4444] hover:bg-[#dc2626] border-2 border-[#ef4444] border-b-4 border-b-[#b91c1c]'
+                }`}
+              >
+                Continue
+              </button>
+            ) : act.type === 'listen' ? (
+              <button
+                disabled={!listenCorrect}
+                onClick={handleListenContinue}
+                className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider transition-all flex items-center gap-2 ${
+                  listenCorrect
+                    ? 'bg-[#58cc02] hover:bg-[#46a302] text-white border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-1 active:border-b-2 shadow-lg animate-pulse'
+                    : 'bg-[#2b3a42] text-[#556973] border-b-4 border-[#202d33] cursor-not-allowed'
+                }`}
+              >
+                <span>{listenCorrect ? 'Continue 👉' : 'Pick One Above'}</span>
+              </button>
+            ) : act.type === 'tap_answer' ? (
+              <button
+                disabled={!canCheck}
+                onClick={() => {
+                  const opts = normalizeTapOptions(act.content as unknown as Record<string, unknown>)
+                  const chosen = opts.find(o => o.id === selected)
+                  if (chosen) handleTapAnswer(chosen)
+                }}
+                className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider transition-all ${
+                  canCheck
+                    ? 'bg-[#58cc02] hover:bg-[#46a302] text-white border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-1 active:border-b-2 shadow-sm'
+                    : 'bg-[#2b3a42] text-[#556973] border-b-4 border-[#202d33] cursor-not-allowed'
+                }`}
+              >
+                Check
+              </button>
+            ) : act.type === 'type_answer' ? (
+              <button
+                disabled={!canCheck}
+                onClick={handleTypeSubmit}
+                className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider transition-all ${
+                  canCheck
+                    ? 'bg-[#58cc02] hover:bg-[#46a302] text-white border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-1 active:border-b-2 shadow-sm'
+                    : 'bg-[#2b3a42] text-[#556973] border-b-4 border-[#202d33] cursor-not-allowed'
+                }`}
+              >
+                Check
+              </button>
+            ) : null}
+          </div>
+
+        </div>
+      </footer>
+
+      {/* ── DUOLINGO HEART MISTAKE MODAL (IMAGE 4) ───────────────── */}
+      <AnimatePresence>
+        {showHeartModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#1a232a] text-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center border-2 border-slate-700 shadow-2xl font-nunito"
+            >
+              {/* Hearts row: e.g. 4 red hearts, 1 gray heart */}
+              <div className="flex items-center justify-center gap-2 mb-5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Heart
+                    key={i}
+                    size={26}
+                    fill={i < Math.max(0, lives) ? '#ef4444' : '#475569'}
+                    className={i < Math.max(0, lives) ? 'text-red-500' : 'text-slate-600'}
+                  />
+                ))}
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-black mb-2 text-white">Each mistake costs 1 heart!</h3>
+              <p className="text-slate-300 font-bold text-xs sm:text-sm mb-6 leading-relaxed">
+                Stay sharp and focused to keep your hearts. You got this!
+              </p>
+
+              <button
+                onClick={() => setShowHeartModal(false)}
+                className="w-full py-3.5 bg-sky-500 hover:bg-sky-400 text-white font-black text-sm uppercase tracking-wider rounded-2xl border-2 border-sky-400 border-b-4 border-b-sky-700 active:translate-y-0.5 shadow-sm"
+              >
+                Keep Going
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── QUIT CONFIRMATION MODAL ──────────────────────────────── */}
+      <AnimatePresence>
+        {showQuitModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#18252d] text-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center border-2 border-[#2e3e48] border-b-[6px] border-b-[#233139] shadow-2xl font-nunito"
+            >
+              <Pip size="lg" mood="sad" animate="idle" className="mb-2" />
+              <h3 className="text-2xl font-black mb-2 text-white">Quit this lesson?</h3>
+              <p className="text-slate-300 font-bold text-xs sm:text-sm mb-6">
+                All progress in this lesson will be lost if you leave now.
+              </p>
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => setShowQuitModal(false)}
+                  className="w-full py-3.5 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-sm uppercase tracking-wider rounded-2xl border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-0.5"
+                >
+                  Keep Learning
+                </button>
+                <button
+                  onClick={() => router.push(`/lessons/${id}`)}
+                  className="w-full py-3 text-slate-400 hover:text-rose-600 font-black text-xs uppercase tracking-wider"
+                >
+                  End Session
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   )
 }

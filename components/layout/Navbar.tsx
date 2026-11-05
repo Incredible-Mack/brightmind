@@ -98,6 +98,16 @@ export function Navbar() {
           {/* Interactive Hearts Refill Modal */}
           <HeartsModal isOpen={heartsOpen} onClose={() => setHeartsOpen(false)} />
 
+          {/* Quick Demo Button (No login required) */}
+          <Link
+            href="/demo"
+            className="hidden sm:flex items-center gap-1.5 bg-[#22c55e]/25 hover:bg-[#22c55e]/35 border border-[#22c55e]/50 text-[#4ade80] rounded-full px-3 py-1 font-black text-xs font-nunito transition-transform active:scale-95"
+            title="Try instant lesson without login"
+          >
+            <Sparkles size={13} className="text-amber-300" />
+            <span>Try Demo</span>
+          </Link>
+
           {/* Upgrade Button */}
           {!premium && (
             <Link

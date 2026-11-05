@@ -184,7 +184,30 @@ export default function LessonsPage() {
       setPath(pathData && pathData.subjects.length ? pathData : null)
       setSubjects(subs)
       setLessons(less as unknown as Lesson[])
-      setProgress(prog as LessonProgress[])
+
+      // Merge server progress with local completed lessons
+      const stored = useAppStore.getState().completedLessons || {}
+      const map = new Map<number, LessonProgress>()
+
+      // Local progress
+      Object.entries(stored).forEach(([lid, p]) => {
+        const numId = Number(lid)
+        map.set(numId, {
+          id: numId,
+          child_id: childId ?? 0,
+          lesson_id: numId,
+          status: 'completed',
+          score: p.score ?? 100,
+          xp_earned: p.xpEarned ?? 20,
+        } as LessonProgress)
+      })
+
+      // Server progress takes priority
+      if (Array.isArray(prog)) {
+        prog.forEach(p => map.set(Number(p.lesson_id), p))
+      }
+
+      setProgress(Array.from(map.values()))
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [child?.id])
