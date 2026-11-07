@@ -295,6 +295,9 @@ function OptionChip({ label, selected, isCorrect, revealed, disabled, onClick }:
 
 type Step = 'predict' | 'mixing' | 'revealed'
 
+const POOL_ADVANCED = RAW_EXPERIMENTS
+const POOL_BASIC = RAW_EXPERIMENTS.slice(0, 6)
+
 export default function ScienceLabPage() {
   const { child, addXP, loseLive } = useAppStore()
 
@@ -304,31 +307,29 @@ export default function ScienceLabPage() {
 
   const isAdvanced = ageGroup === '9-11' || ageGroup === '12-14'
 
-  // Pool of experiments based on age
-  const pool = isAdvanced ? RAW_EXPERIMENTS : RAW_EXPERIMENTS.slice(0, 6)
-
   // ── Round State ──
-  const [queue, setQueue] = useState<Experiment[]>([])
+  const [roundKey, setRoundKey] = useState(0)
+  const [queue, setQueue] = useState<Experiment[]>(() => {
+    const p = isAdvanced ? POOL_ADVANCED : POOL_BASIC
+    const shuffled = [...p].sort(() => Math.random() - 0.5)
+    return shuffled.slice(0, QUESTIONS_PER_ROUND).map(prepareExperiment)
+  })
   const [qIndex, setQIndex] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
   const [xpEarned, setXpEarned] = useState(0)
   const [showResult, setShowResult] = useState(false)
-  const [roundKey, setRoundKey] = useState(0)
 
   // ── Question State ──
   const [step, setStep] = useState<Step>('predict')
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [selectionWarning, setSelectionWarning] = useState(false)
 
-  // Build shuffled queue on round start
-  const buildQueue = useCallback(() => {
-    const shuffled = [...pool].sort(() => Math.random() - 0.5)
-    return shuffled.slice(0, QUESTIONS_PER_ROUND).map(prepareExperiment)
-  }, [pool])
-
+  // Only re-build queue when a new round starts or age changes
   useEffect(() => {
-    setQueue(buildQueue())
-  }, [buildQueue, roundKey])
+    const p = isAdvanced ? POOL_ADVANCED : POOL_BASIC
+    const shuffled = [...p].sort(() => Math.random() - 0.5)
+    setQueue(shuffled.slice(0, QUESTIONS_PER_ROUND).map(prepareExperiment))
+  }, [roundKey, isAdvanced])
 
   const experiment = queue[qIndex] ?? null
 
