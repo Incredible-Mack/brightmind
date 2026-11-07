@@ -634,7 +634,7 @@ export default function WonderLearnLandingPage() {
               <span className="w-7 h-7 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-base anim-pulse-glow">
                 ❤️
               </span>
-              <span>For Ages 4–12</span>
+              <span>For Ages 0–14</span>
             </div>
           </div>
         </div>
