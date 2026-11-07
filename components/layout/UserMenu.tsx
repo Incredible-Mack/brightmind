@@ -16,20 +16,29 @@ const fmtDate = (iso: string) => new Date(iso.replace(' ', 'T')).toLocaleDateStr
 export function UserMenu() {
   const router = useRouter()
   const pathname = usePathname()
-  const { child, user, xp, premium, premiumUntil, setUser, setPremium } = useAppStore()
+  const { child, setChild, user, xp, premium, premiumUntil, setUser, setPremium } = useAppStore()
   const [open, setOpen] = useState(false)
+  const [childrenList, setChildrenList] = useState<any[]>([])
   const wrapRef = useRef<HTMLDivElement>(null)
 
-  // Learn who the signed-in parent is (role, email, premium) once, so the menu can show the right things
+  // Learn who the signed-in parent is (role, email, premium), so the menu always shows the right things
   useEffect(() => {
-    if (!getToken() || user) return
+    if (!getToken()) return
     api.auth.me().then(res => {
       if (res.user) {
         setUser({ id: Number(res.user.id), email: res.user.email, role: res.user.role === 'admin' ? 'admin' : 'parent' })
         setPremium(!!res.user.is_premium, res.user.premium_until ?? null)
       }
     }).catch(() => {})
-  }, [user, setUser, setPremium])
+  }, [setUser, setPremium])
+
+  // Fetch children list to allow quick switching directly from the top menu
+  useEffect(() => {
+    if (!getToken()) return
+    api.children.list().then(res => {
+      if (Array.isArray(res)) setChildrenList(res)
+    }).catch(() => {})
+  }, [child])
 
   // Close on outside click, Escape, or navigation
   useEffect(() => {
@@ -65,10 +74,50 @@ export function UserMenu() {
             <Avatar seed={child.avatar_seed} name={child.name} size={44} />
             <div className="min-w-0">
               <p className="text-slate-900 font-nunito font-black text-sm truncate">{child.name}</p>
-              <p className="text-purple-700 font-nunito font-bold text-xs">Level {level + 1} · {levelName}</p>
+              <p className="text-purple-700 font-nunito font-bold text-xs">Level {level} · {levelName}</p>
               {user?.email && <p className="text-slate-500 font-nunito text-[11px] truncate">{user.email}</p>}
             </div>
           </div>
+
+          {childrenList.length > 1 && (
+            <div className="px-3 py-2 bg-slate-50/80 border-b border-purple-100">
+              <p className="text-[10px] font-black uppercase text-slate-500 mb-1.5 px-1 font-nunito tracking-wider">
+                Switch Child Profile
+              </p>
+              <div className="flex flex-col gap-1 max-h-36 overflow-y-auto">
+                {childrenList.map(c => {
+                  const isCurrent = Number(c.id) === Number(child.id)
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        if (!isCurrent) {
+                          setChild(c)
+                          setOpen(false)
+                        }
+                      }}
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-black font-nunito transition-colors cursor-pointer ${
+                        isCurrent
+                          ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                          : 'hover:bg-purple-50 text-slate-700 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Avatar seed={c.avatar_seed} name={c.name} size={22} />
+                        <span className="truncate">{c.name}</span>
+                      </div>
+                      {isCurrent ? (
+                        <span className="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded-full font-extrabold flex-shrink-0">Active</span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-bold flex-shrink-0">{c.xp ?? 0} XP</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="py-2">
             <Link role="menuitem" href="/profile" className={item}><User size={16} className="text-purple-500" /> My profile</Link>

@@ -1,0 +1,509 @@
+[
+  {
+    "id": 1,
+    "subject_id": 1,
+    "slug": "math-num-1-5",
+    "title": "Numbers 1 to 5",
+    "description": "Meet the numbers 1, 2, 3, 4, 5 with objects",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 1,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 2,
+    "subject_id": 1,
+    "slug": "math-num-6-10",
+    "title": "Numbers 6 to 10",
+    "description": "Meet the numbers 6, 7, 8, 9, 10",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 2,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 3,
+    "subject_id": 1,
+    "slug": "math-shapes-basic",
+    "title": "Shapes Around Us",
+    "description": "Learn circles, squares and triangles",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 3,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 4,
+    "subject_id": 1,
+    "slug": "math-num-11-20",
+    "title": "Numbers 11 to 20",
+    "description": "Count and recognise 11 to 20",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 4,
+    "xp_reward": 25,
+    "difficulty": "easy"
+  },
+  {
+    "id": 5,
+    "subject_id": 1,
+    "slug": "math-addition-1",
+    "title": "Adding Up",
+    "description": "Introduction to addition with small numbers",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 5,
+    "xp_reward": 30,
+    "difficulty": "easy"
+  },
+  {
+    "id": 6,
+    "subject_id": 1,
+    "slug": "math-subtraction-1",
+    "title": "Taking Away",
+    "description": "Introduction to subtraction",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 6,
+    "xp_reward": 30,
+    "difficulty": "medium"
+  },
+  {
+    "id": 7,
+    "subject_id": 1,
+    "slug": "math-times-1-5",
+    "title": "Times Tables 1 to 5",
+    "description": "Learn and practise times tables for 1 through 5",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 7,
+    "xp_reward": 35,
+    "difficulty": "medium"
+  },
+  {
+    "id": 8,
+    "subject_id": 1,
+    "slug": "math-times-6-10",
+    "title": "Times Tables 6 to 10",
+    "description": "Times tables for 6 through 10",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 8,
+    "xp_reward": 35,
+    "difficulty": "medium"
+  },
+  {
+    "id": 9,
+    "subject_id": 1,
+    "slug": "math-fractions-1",
+    "title": "Fractions: Halves and Quarters",
+    "description": "Understand halves, quarters, and thirds",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 9,
+    "xp_reward": 40,
+    "difficulty": "medium"
+  },
+  {
+    "id": 10,
+    "subject_id": 1,
+    "slug": "math-division-1",
+    "title": "Division Basics",
+    "description": "Sharing equally and dividing numbers",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 10,
+    "xp_reward": 40,
+    "difficulty": "medium"
+  },
+  {
+    "id": 11,
+    "subject_id": 1,
+    "slug": "math-algebra-1",
+    "title": "Algebra Basics",
+    "description": "Understand variables, expressions, and simple equations",
+    "age_groups": [
+      "12-14"
+    ],
+    "order_index": 11,
+    "xp_reward": 50,
+    "difficulty": "medium"
+  },
+  {
+    "id": 12,
+    "subject_id": 1,
+    "slug": "math-percentages",
+    "title": "Percentages",
+    "description": "Convert fractions to percentages and solve problems",
+    "age_groups": [
+      "12-14"
+    ],
+    "order_index": 12,
+    "xp_reward": 50,
+    "difficulty": "hard"
+  },
+  {
+    "id": 13,
+    "subject_id": 2,
+    "slug": "eng-letters-a-e",
+    "title": "Letters A to E",
+    "description": "Meet the letters A, B, C, D and E with pictures",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 1,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 14,
+    "subject_id": 2,
+    "slug": "eng-letters-f-j",
+    "title": "Letters F to J",
+    "description": "Meet the letters F, G, H, I and J",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 2,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 15,
+    "subject_id": 2,
+    "slug": "eng-letters-k-o",
+    "title": "Letters K to O",
+    "description": "Meet the letters K, L, M, N and O",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 3,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 16,
+    "subject_id": 2,
+    "slug": "eng-letters-p-t",
+    "title": "Letters P to T",
+    "description": "Meet the letters P, Q, R, S and T",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 4,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 17,
+    "subject_id": 2,
+    "slug": "eng-letters-u-z",
+    "title": "Letters U to Z",
+    "description": "Complete the alphabet: U, V, W, X, Y and Z",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 5,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 18,
+    "subject_id": 2,
+    "slug": "eng-full-alphabet",
+    "title": "The Alphabet A to Z",
+    "description": "Review all 26 letters in order and their sounds",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 6,
+    "xp_reward": 25,
+    "difficulty": "easy"
+  },
+  {
+    "id": 19,
+    "subject_id": 2,
+    "slug": "eng-vowels",
+    "title": "Vowels: A E I O U",
+    "description": "Learn what vowels are and how to identify them",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 7,
+    "xp_reward": 25,
+    "difficulty": "easy"
+  },
+  {
+    "id": 20,
+    "subject_id": 2,
+    "slug": "eng-cvc-words",
+    "title": "Simple Three-Letter Words",
+    "description": "Read and spell simple CVC words like cat and dog",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 8,
+    "xp_reward": 30,
+    "difficulty": "easy"
+  },
+  {
+    "id": 21,
+    "subject_id": 2,
+    "slug": "eng-sight-words",
+    "title": "Sight Words",
+    "description": "Learn the most common words: I, am, the, is, a, we",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 9,
+    "xp_reward": 30,
+    "difficulty": "medium"
+  },
+  {
+    "id": 22,
+    "subject_id": 2,
+    "slug": "eng-nouns",
+    "title": "Nouns: Naming Words",
+    "description": "Understand what nouns are and identify them in sentences",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 10,
+    "xp_reward": 35,
+    "difficulty": "medium"
+  },
+  {
+    "id": 23,
+    "subject_id": 2,
+    "slug": "eng-verbs",
+    "title": "Verbs: Action Words",
+    "description": "Understand verbs and how they show action or state",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 11,
+    "xp_reward": 35,
+    "difficulty": "medium"
+  },
+  {
+    "id": 24,
+    "subject_id": 2,
+    "slug": "eng-adjectives",
+    "title": "Adjectives: Describing Words",
+    "description": "Use adjectives to describe nouns in sentences",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 12,
+    "xp_reward": 35,
+    "difficulty": "medium"
+  },
+  {
+    "id": 25,
+    "subject_id": 2,
+    "slug": "eng-grammar-tenses",
+    "title": "Grammar: Verb Tenses",
+    "description": "Master past, present, and future tenses",
+    "age_groups": [
+      "12-14"
+    ],
+    "order_index": 13,
+    "xp_reward": 50,
+    "difficulty": "hard"
+  },
+  {
+    "id": 26,
+    "subject_id": 2,
+    "slug": "eng-essay-basics",
+    "title": "Writing: Paragraphs",
+    "description": "Structure ideas into well-formed paragraphs",
+    "age_groups": [
+      "12-14"
+    ],
+    "order_index": 14,
+    "xp_reward": 50,
+    "difficulty": "hard"
+  },
+  {
+    "id": 27,
+    "subject_id": 3,
+    "slug": "sci-animals-05",
+    "title": "Animals Around Us",
+    "description": "Discover common animals and their sounds",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 1,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 28,
+    "subject_id": 3,
+    "slug": "sci-plants-1",
+    "title": "How Plants Grow",
+    "description": "Learn the parts of a plant and what plants need",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 2,
+    "xp_reward": 25,
+    "difficulty": "easy"
+  },
+  {
+    "id": 29,
+    "subject_id": 3,
+    "slug": "sci-weather-1",
+    "title": "Types of Weather",
+    "description": "Explore sunny, rainy, cloudy, and snowy weather",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 3,
+    "xp_reward": 25,
+    "difficulty": "easy"
+  },
+  {
+    "id": 30,
+    "subject_id": 3,
+    "slug": "sci-living-nonliving",
+    "title": "Living and Non-Living",
+    "description": "Understand what makes something alive",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 4,
+    "xp_reward": 25,
+    "difficulty": "medium"
+  },
+  {
+    "id": 31,
+    "subject_id": 3,
+    "slug": "sci-human-body",
+    "title": "The Human Body",
+    "description": "Learn about major organs and their jobs",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 5,
+    "xp_reward": 35,
+    "difficulty": "medium"
+  },
+  {
+    "id": 32,
+    "subject_id": 3,
+    "slug": "sci-solar-system",
+    "title": "The Solar System",
+    "description": "Explore the planets and our place in space",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 6,
+    "xp_reward": 35,
+    "difficulty": "medium"
+  },
+  {
+    "id": 33,
+    "subject_id": 3,
+    "slug": "sci-forces",
+    "title": "Forces and Motion",
+    "description": "Understand gravity, friction, and push and pull",
+    "age_groups": [
+      "12-14"
+    ],
+    "order_index": 7,
+    "xp_reward": 50,
+    "difficulty": "hard"
+  },
+  {
+    "id": 34,
+    "subject_id": 4,
+    "slug": "ss-my-family",
+    "title": "My Family",
+    "description": "Learn about family members and their roles",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 1,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 35,
+    "subject_id": 4,
+    "slug": "ss-my-body",
+    "title": "My Body",
+    "description": "Name and point to parts of the body",
+    "age_groups": [
+      "0-5"
+    ],
+    "order_index": 2,
+    "xp_reward": 20,
+    "difficulty": "easy"
+  },
+  {
+    "id": 36,
+    "subject_id": 4,
+    "slug": "ss-my-school",
+    "title": "My School",
+    "description": "Explore the school community and its helpers",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 3,
+    "xp_reward": 25,
+    "difficulty": "easy"
+  },
+  {
+    "id": 37,
+    "subject_id": 4,
+    "slug": "ss-my-community",
+    "title": "My Community",
+    "description": "Neighbours, helpers, and community places",
+    "age_groups": [
+      "6-8"
+    ],
+    "order_index": 4,
+    "xp_reward": 25,
+    "difficulty": "medium"
+  },
+  {
+    "id": 38,
+    "subject_id": 4,
+    "slug": "ss-continents",
+    "title": "Continents and Oceans",
+    "description": "Learn the seven continents and five oceans",
+    "age_groups": [
+      "9-11"
+    ],
+    "order_index": 5,
+    "xp_reward": 35,
+    "difficulty": "medium"
+  },
+  {
+    "id": 39,
+    "subject_id": 4,
+    "slug": "ss-government",
+    "title": "Government and Democracy",
+    "description": "How countries are governed and what democracy means",
+    "age_groups": [
+      "12-14"
+    ],
+    "order_index": 6,
+    "xp_reward": 50,
+    "difficulty": "hard"
+  }
+]

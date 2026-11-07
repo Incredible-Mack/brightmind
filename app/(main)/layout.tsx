@@ -1,9 +1,10 @@
 'use client'
+
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 import { BottomNav } from '@/components/layout/BottomNav'
-import { MainFooterTransition } from '@/components/layout/MainFooterTransition'
+import { ScallopRibbon } from '@/components/home/ScallopRibbon'
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -11,7 +12,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   if (isPlayPage) {
     return (
-      <div className="min-h-screen bg-[#131f24] text-white flex flex-col font-nunito selection:bg-emerald-400 selection:text-slate-900">
+      <div className="min-h-screen bg-[#f0f9ff] text-slate-800 flex flex-col font-nunito selection:bg-amber-300 selection:text-slate-900">
         {children}
       </div>
     )
@@ -25,46 +26,50 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         {children}
       </main>
 
-      {/* Seamless Wave Transition into Deep Navy Footer */}
-      <MainFooterTransition />
+      {/* Scalloped Wave Transition into Lush Emerald Footer */}
+      <ScallopRibbon topBg="#fffdf8" bottomBg="#0d5c56" variant="wave" />
 
-      {/* Cohesive Global Deep Navy Footer (Matching Landing Page) */}
-      <footer className="bg-[#1d2445] text-white border-t border-white/10 py-10 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+      {/* Cohesive Global Rolling Hills Emerald Footer (Matching Home Page) */}
+      <footer className="w-full bg-[#0d5c56] text-white pt-8 pb-10 px-6 border-t-2 border-[#0a4843]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           
-          <div className="md:col-span-6 space-y-3 text-center md:text-left">
+          <div className="space-y-2 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2.5">
-              <div className="bg-[#f43f5e] px-3 py-1 rounded-xl flex items-center gap-1.5 shadow-sm">
-                <span className="font-black text-white text-sm">Bright Steps</span>
+              <div className="w-9 h-9 rounded-2xl bg-[#fde047] text-amber-900 flex items-center justify-center text-lg shadow-sm font-black">
+                📖
+              </div>
+              <div>
+                <span className="font-black text-white text-base leading-tight">Bright Steps</span>
+                <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-wider">Imagine • Discover • Grow</p>
               </div>
             </div>
-            <p className="text-slate-300 text-xs font-bold">
-              Made with care for curious kids everywhere.
+            <p className="text-emerald-100 text-xs font-bold max-w-sm">
+              Safe, voice-interactive educational adventures designed for kids aged 0–14.
             </p>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
-              <span className="px-2.5 py-0.5 rounded-full border border-dashed border-white/40 text-[10px] font-bold text-slate-300">
-                No ads
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-800/80 border border-emerald-600/50 text-[10px] font-black text-emerald-200">
+                🛡️ 100% Ad-Free
               </span>
-              <span className="px-2.5 py-0.5 rounded-full border border-dashed border-white/40 text-[10px] font-bold text-slate-300">
-                No sign-up to test
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-800/80 border border-emerald-600/50 text-[10px] font-black text-emerald-200">
+                ⭐ Expert Curated
               </span>
-              <span className="px-2.5 py-0.5 rounded-full border border-dashed border-white/40 text-[10px] font-bold text-slate-300">
-                Kid-safe
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-800/80 border border-emerald-600/50 text-[10px] font-black text-emerald-200">
+                ❤️ For Kids Everywhere
               </span>
             </div>
           </div>
 
-          <div className="md:col-span-6 flex flex-wrap items-center justify-center md:justify-end gap-5 text-xs font-black">
-            <Link href="/lessons" className="text-slate-300 hover:text-amber-400 transition-colors">
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-5 text-xs font-black">
+            <Link href="/lessons" className="text-emerald-100 hover:text-amber-300 transition-colors">
               Courses
             </Link>
-            <Link href="/videos" className="text-slate-300 hover:text-amber-400 transition-colors">
+            <Link href="/videos" className="text-emerald-100 hover:text-amber-300 transition-colors">
               Videos
             </Link>
-            <Link href="/achievements" className="text-slate-300 hover:text-amber-400 transition-colors">
+            <Link href="/achievements" className="text-emerald-100 hover:text-amber-300 transition-colors">
               Trophies
             </Link>
-            <Link href="/parent" className="text-slate-300 hover:text-amber-400 transition-colors">
+            <Link href="/parent" className="text-emerald-100 hover:text-amber-300 transition-colors">
               Parent Dashboard
             </Link>
           </div>

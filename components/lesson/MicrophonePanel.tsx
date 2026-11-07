@@ -178,13 +178,13 @@ export function MicrophonePanel({
             >
               <MicOff size={26} className="text-white" />
             </motion.button>
-            <div className={`w-full bg-[#18252d] rounded-2xl p-2.5 sm:p-3 border min-h-[44px] flex items-center justify-center transition-colors ${displayText ? 'border-[#58cc02] shadow-md shadow-green-950/30' : 'border-[#2e3e48]'}`}>
-              <p className="text-white font-nunito font-black text-center text-xs sm:text-sm w-full">
+            <div className={`w-full bg-white rounded-2xl p-2.5 sm:p-3 border-2 min-h-[44px] flex items-center justify-center transition-colors ${displayText ? 'border-emerald-500 shadow-md shadow-emerald-500/10' : 'border-slate-200 shadow-xs'}`}>
+              <p className="text-slate-800 font-nunito font-black text-center text-xs sm:text-sm w-full">
                 {displayText ? (
-                  <span className="text-[#4ade80]">&ldquo;{displayText}&rdquo;</span>
+                  <span className="text-emerald-600">&ldquo;{displayText}&rdquo;</span>
                 ) : (
                   <span className="text-slate-400 italic flex items-center justify-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-ping" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                     Pip is listening… Say it now!
                   </span>
                 )}
@@ -196,30 +196,30 @@ export function MicrophonePanel({
                   key={i}
                   animate={{
                     height: displayText ? [4, 14 * h, 4] : [3, 10 * h, 3],
-                    backgroundColor: displayText ? '#4ade80' : '#22c55e',
+                    backgroundColor: displayText ? '#059669' : '#10b981',
                   }}
                   transition={{ duration: 0.35 + i * 0.07, repeat: Infinity, ease: 'easeInOut' }}
                   className="w-1 rounded-full"
                 />
               ))}
             </div>
-            <p className="text-slate-400 font-bold font-nunito text-[11px] sm:text-xs text-center">{displayText ? "Checking what you said…" : "Speak clearly into the microphone"}</p>
+            <p className="text-slate-500 font-bold font-nunito text-[11px] sm:text-xs text-center">{displayText ? "Checking what you said…" : "Speak clearly into the microphone"}</p>
           </motion.div>
         )}
 
         {state === 'processing' && (
           <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#18252d] border-2 border-blue-500/30 flex items-center justify-center">
-              <Spinner size={26} color="#3b82f6" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-sky-50 border-2 border-sky-300 flex items-center justify-center">
+              <Spinner size={26} color="#0284c7" />
             </div>
-            <p className="text-slate-300 font-bold font-nunito text-xs sm:text-sm">{modelProgress != null ? `Getting my ears ready… ${modelProgress}% (only the first time)` : 'Checking your answer…'}</p>
+            <p className="text-slate-600 font-bold font-nunito text-xs sm:text-sm">{modelProgress != null ? `Getting my ears ready… ${modelProgress}% (only the first time)` : 'Checking your answer…'}</p>
           </motion.div>
         )}
 
         {state === 'done' && transcript && (
           <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4 w-full">
-            <div className="w-full bg-[#18252d] rounded-2xl p-4 border border-[#4ade80]/30">
-              <p className="text-white font-nunito font-black text-center">&ldquo;{transcript}&rdquo;</p>
+            <div className="w-full bg-white rounded-2xl p-4 border-2 border-emerald-300 shadow-sm">
+              <p className="text-slate-800 font-nunito font-black text-center">&ldquo;{transcript}&rdquo;</p>
             </div>
             <Button variant="ghost" size="sm" onClick={reset}>Try again</Button>
           </motion.div>
@@ -227,7 +227,7 @@ export function MicrophonePanel({
 
         {state === 'done' && !transcript && !error && (
           <motion.div key="nospeech" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4 w-full">
-            <p className="text-yellow-300 font-nunito font-semibold text-center">
+            <p className="text-amber-800 font-nunito font-bold text-center">
               {capture && capture.peak < 0.01
                 ? "I can't hear your microphone. Check that it is on, not muted, and the right one."
                 : capture?.heardSpeech
@@ -245,33 +245,33 @@ export function MicrophonePanel({
             key="error"
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full bg-[#18252d] border border-yellow-500/20 rounded-2xl p-5 flex flex-col items-center gap-4"
+            className="w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 flex flex-col items-center gap-4"
           >
-            <div className="w-14 h-14 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
-              <MicOffIcon size={26} className="text-yellow-400" />
+            <div className="w-14 h-14 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center">
+              <MicOffIcon size={26} className="text-amber-600" />
             </div>
             <div className="text-center">
-              <p className="text-yellow-300 font-nunito font-bold text-sm mb-1">Voice not available</p>
-              <p className="text-slate-300 font-bold font-nunito text-xs leading-relaxed">{msg}</p>
+              <p className="text-amber-900 font-nunito font-black text-sm mb-1">Voice not available</p>
+              <p className="text-amber-800/90 font-bold font-nunito text-xs leading-relaxed">{msg}</p>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={reset}
-                className="px-4 py-2 rounded-xl border border-white/15 text-slate-300 font-nunito font-semibold text-sm hover:bg-white/5 transition-colors"
+                className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-nunito font-bold text-sm hover:bg-slate-50 transition-colors shadow-2xs"
               >
                 Try Again
               </button>
               {onSkip && (
                 <button
                   onClick={onSkip}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-yellow-500/15 border border-yellow-500/25 text-yellow-300 font-nunito font-semibold text-sm hover:bg-yellow-500/25 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-200/60 border border-amber-300 text-amber-900 font-nunito font-bold text-sm hover:bg-amber-200 transition-colors"
                 >
                   <SkipForward size={14} /> Skip
                 </button>
               )}
             </div>
             {!onSkip && (
-              <p className="text-slate-600 font-nunito text-xs">Try opening in Google Chrome for voice support.</p>
+              <p className="text-slate-500 font-nunito text-xs">Try opening in Google Chrome for voice support.</p>
             )}
           </motion.div>
         )}

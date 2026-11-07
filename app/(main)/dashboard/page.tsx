@@ -17,6 +17,7 @@ import { ScallopRibbon } from '@/components/home/ScallopRibbon'
 import { useRefetchOnFocus } from '@/hooks/useRefetchOnFocus'
 import { useCoach } from '@/hooks/useCoach'
 import type { Lesson, LessonProgress } from '@/types/lesson'
+import { getAgeGroup, lessonMatchesAge } from '@/lib/curriculum.data'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -35,7 +36,7 @@ export default function DashboardPage() {
       try {
         const [childList, lessons] = await Promise.all([
           child ? Promise.resolve(null) : api.children.list(),
-          api.lessons.list({ limit: 4 }),
+          api.lessons.list(),
         ])
 
         if (!child) {
@@ -54,7 +55,11 @@ export default function DashboardPage() {
           api.children.list().then(list => setMultipleChildren(list.length > 1)).catch(() => {})
         }
 
-        setRecentLessons(lessons as unknown as Lesson[])
+        const currentChild = child || (childList ? childList[0] : null)
+        const childAgeGroup = currentChild ? getAgeGroup(currentChild.age ?? 4) : '0-5'
+        const allLessons = Array.isArray(lessons) ? (lessons as unknown as Lesson[]) : []
+        const ageFiltered = allLessons.filter(l => lessonMatchesAge(l, childAgeGroup))
+        setRecentLessons(ageFiltered.length > 0 ? ageFiltered.slice(0, 4) : allLessons.slice(0, 4))
       } catch {
         router.push('/login')
       } finally {
@@ -229,7 +234,7 @@ export default function DashboardPage() {
                 icon: BookOpen,
                 label: 'Course Adventure',
                 desc: 'Explore the 4 Seasons Map',
-                href: '/lessons',
+                href: `/lessons?age=${child ? getAgeGroup(child.age ?? 4) : '0-5'}`,
                 cardBg: 'bg-[#eff6ff]',
                 cardBorder: 'border-[#3b82f6] border-b-[#1d4ed8]',
                 badgeBg: 'bg-[#3b82f6]',
@@ -311,7 +316,7 @@ export default function DashboardPage() {
                 </h2>
                 <p className="text-slate-500 font-bold text-sm">Pick up where you left off</p>
               </div>
-              <Link href="/lessons" className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 font-black text-sm font-nunito bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-xl border border-emerald-200 transition-colors">
+              <Link href={`/lessons?age=${child ? getAgeGroup(child.age ?? 4) : '0-5'}`} className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 font-black text-sm font-nunito bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-xl border border-emerald-200 transition-colors">
                 <span>See all</span>
                 <ChevronRight size={16} />
               </Link>

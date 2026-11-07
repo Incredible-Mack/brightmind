@@ -1,208 +1,150 @@
 'use client'
-import { useEffect } from 'react'
+
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { Star, PlayCircle, BookOpen, ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Star,
+  PlayCircle,
+  ArrowLeft,
+  Volume2,
+  VolumeX,
+  Sparkles,
+  Headphones,
+  Mic,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import { useLesson } from '@/hooks/useLesson'
-import { useAppStore } from '@/store/useAppStore'
 import { Spinner } from '@/components/ui/Spinner'
-import { SubjectIcon, subjectColors } from '@/components/icons/SubjectIcon'
-import { AnimatedSun, DoodleCloud, DoodleStar } from '@/components/home/KidsDoodles'
 import type { SubjectSlug } from '@/types/lesson'
 import type { Activity } from '@/types/activity'
 
-// Subject-specific vibrant themes matching Bright Steps design system
-const subjectThemeConfig: Record<SubjectSlug, {
-  bg: string
-  hillFront: string
-  hillBack: string
-  headerBg: string
-  headerBorder: string
-  badgeBg: string
-  badgeText: string
-  accentColor: string
-  doodles: string[]
-  mascotTip: string
-}> = {
+// Character companions per subject
+const subjectCharacterMap: Record<
+  SubjectSlug,
+  {
+    characterName: string
+    imageSrc: string
+    badge: string
+    accentColor: string
+    headerGradient: string
+    greeting: string
+  }
+> = {
+  'creative-arts': {
+    characterName: 'Bunny Artist',
+    imageSrc: '/images/bunny-scholar.png',
+    badge: 'Creative Arts',
+    accentColor: '#ec4899',
+    headerGradient: 'from-pink-500 via-rose-500 to-amber-400',
+    greeting: "Hi, I'm Bunny! Let's mix colors and paint beautiful wonders together! 🎨",
+  },
   math: {
-    bg: 'bg-[#dcfce7]', // lush pastel green landscape
-    hillFront: '#86efac',
-    hillBack: '#4ade80',
-    headerBg: 'bg-[#3b82f6]', // vibrant royal blue header
-    headerBorder: 'border-[#1d4ed8]',
-    badgeBg: 'bg-blue-100',
-    badgeText: 'text-blue-900',
-    accentColor: '#3b82f6',
-    doodles: ['🔢', '➕', '⭐', '🎲', '1️⃣', '2️⃣', '3️⃣'],
-    mascotTip: "Let's count, tap, and have fun with numbers!",
+    characterName: 'Math Knight',
+    imageSrc: '/images/game-math-quest.jpg',
+    badge: 'Numbers & Shapes',
+    accentColor: '#2563eb',
+    headerGradient: 'from-blue-600 via-sky-500 to-cyan-400',
+    greeting: "Numbers are like friendly puzzle pieces! Let's count and unlock shiny stars! 🔢",
   },
   english: {
-    bg: 'bg-[#ede9fe]', // soft magical lavender
-    hillFront: '#c4b5fd',
-    hillBack: '#a78bfa',
-    headerBg: 'bg-[#8b5cf6]',
-    headerBorder: 'border-[#6d28d9]',
-    badgeBg: 'bg-purple-100',
-    badgeText: 'text-purple-900',
-    accentColor: '#8b5cf6',
-    doodles: ['🔤', '📖', '✨', '✏️', '🅰️', '🅱️'],
-    mascotTip: "Listen closely and speak the words out loud!",
+    characterName: 'Bunny Scholar',
+    imageSrc: '/images/bunny-scholar.png',
+    badge: 'Reading & Phonics',
+    accentColor: '#7c3aed',
+    headerGradient: 'from-purple-600 via-indigo-500 to-pink-400',
+    greeting: "Words have secret sounds! Listen closely and speak out loud with me! 📖",
   },
   science: {
-    bg: 'bg-[#ccfbf1]', // fresh ocean mint
-    hillFront: '#5eead4',
-    hillBack: '#2dd4bf',
-    headerBg: 'bg-[#0d9488]',
-    headerBorder: 'border-[#0f766e]',
-    badgeBg: 'bg-teal-100',
-    badgeText: 'text-teal-900',
+    characterName: 'Science Scout',
+    imageSrc: '/images/game-puzzle-quest.jpg',
+    badge: 'Science Lab',
     accentColor: '#0d9488',
-    doodles: ['🪐', '🌱', '🔬', '⚡', '🌟', '🌍'],
-    mascotTip: "Get ready to explore amazing natural wonders!",
+    headerGradient: 'from-teal-600 via-emerald-500 to-cyan-400',
+    greeting: "Every plant, rock, and star has a secret to discover! Let's explore together! 🔬",
   },
   'social-studies': {
-    bg: 'bg-[#fef3c7]', // warm sunny amber
-    hillFront: '#fde047',
-    hillBack: '#facc15',
-    headerBg: 'bg-[#f97316]',
-    headerBorder: 'border-[#ea580c]',
-    badgeBg: 'bg-amber-100',
-    badgeText: 'text-amber-900',
-    accentColor: '#f97316',
-    doodles: ['🌍', '🧭', '🏛️', '🗺️', '⭐'],
-    mascotTip: "Discover people, places, and exciting stories!",
+    characterName: 'Captain Leo',
+    imageSrc: '/images/island-adventure.jpg',
+    badge: 'Our Great Planet',
+    accentColor: '#ea580c',
+    headerGradient: 'from-orange-600 via-amber-500 to-yellow-400',
+    greeting: "Set sail with our flying cloud ship to discover distant lands and make new friends! 🌍",
   },
   'life-skills': {
-    bg: 'bg-[#ecfdf5]',
-    hillFront: '#86efac',
-    hillBack: '#4ade80',
-    headerBg: 'bg-[#10b981]',
-    headerBorder: 'border-[#047857]',
-    badgeBg: 'bg-emerald-100',
-    badgeText: 'text-emerald-900',
-    accentColor: '#10b981',
-    doodles: ['🌱', '🤝', '💡', '🌟', '❤️'],
-    mascotTip: "Super skills that make you shine every day!",
+    characterName: 'Pip & Friends',
+    imageSrc: '/images/mascots-mobile.jpg',
+    badge: 'Life Skills',
+    accentColor: '#059669',
+    headerGradient: 'from-emerald-600 via-teal-500 to-cyan-400',
+    greeting: "Kindness and healthy daily habits make every day bright and happy! 🌱",
   },
-  'creative-arts': {
-    bg: 'bg-[#fce7f3]', // playful bubblegum pink
-    hillFront: '#f9a8d4',
-    hillBack: '#f472b6',
-    headerBg: 'bg-[#ec4899]',
-    headerBorder: 'border-[#be185d]',
-    badgeBg: 'bg-pink-100',
-    badgeText: 'text-pink-900',
-    accentColor: '#ec4899',
-    doodles: ['🎨', '🌈', '✂️', '🎭', '✨'],
-    mascotTip: "Unleash your creativity and imagination!",
-  },
-}
-
-// Activity card color palette cycling (inspired by the landing page cards)
-const activityCardStyles = [
-  {
-    bg: 'bg-[#ecfdf5]',
-    border: 'border-[#a7f3d0] border-b-[#6ee7b7]',
-    badge: 'bg-[#10b981] text-white',
-    pill: 'bg-emerald-100 text-emerald-900',
-    iconBg: 'bg-emerald-100 text-[#059669]',
-  },
-  {
-    bg: 'bg-[#f0f9ff]',
-    border: 'border-[#bae6fd] border-b-[#7dd3fc]',
-    badge: 'bg-[#0284c7] text-white',
-    pill: 'bg-sky-100 text-sky-900',
-    iconBg: 'bg-sky-100 text-[#0284c7]',
-  },
-  {
-    bg: 'bg-[#fffbeb]',
-    border: 'border-[#fde68a] border-b-[#fcd34d]',
-    badge: 'bg-[#f59e0b] text-white',
-    pill: 'bg-amber-100 text-amber-900',
-    iconBg: 'bg-amber-100 text-[#d97706]',
-  },
-  {
-    bg: 'bg-[#faf5ff]',
-    border: 'border-[#e9d5ff] border-b-[#d8b4fe]',
-    badge: 'bg-[#9333ea] text-white',
-    pill: 'bg-purple-100 text-purple-900',
-    iconBg: 'bg-purple-100 text-[#7e22ce]',
-  },
-  {
-    bg: 'bg-[#fff1f2]',
-    border: 'border-[#fecdd3] border-b-[#fda4af]',
-    badge: 'bg-[#f43f5e] text-white',
-    pill: 'bg-rose-100 text-rose-900',
-    iconBg: 'bg-rose-100 text-[#e11d48]',
-  },
-  {
-    bg: 'bg-[#f0fdfa]',
-    border: 'border-[#99f6e4] border-b-[#5eead4]',
-    badge: 'bg-[#0d9488] text-white',
-    pill: 'bg-teal-100 text-teal-900',
-    iconBg: 'bg-teal-100 text-[#0f766e]',
-  },
-]
-
-function getActivityInfo(act: Activity, index: number) {
-  const c = act.content as any
-  let title = ''
-  let icon = '🎧'
-  let label = 'Listen'
-
-  if (act.type === 'listen') {
-    icon = '🎧'
-    label = 'Listen & Learn'
-    title = c?.text ? `"${c.text}"` : `Listen to the concept`
-  } else if (act.type === 'speak') {
-    icon = '🎙️'
-    label = 'Speak Out Loud'
-    title = c?.expected || c?.prompt ? `Say "${c?.expected || c?.prompt}"` : `Voice pronunciation challenge`
-  } else if (act.type === 'tap_answer') {
-    icon = '🎯'
-    label = 'Tap & Choose'
-    title = c?.question || `Choose the correct answer`
-  } else if (act.type === 'type_answer') {
-    icon = '✏️'
-    label = 'Write & Spell'
-    title = c?.question || `Type your answer`
-  } else if (act.type === 'video') {
-    icon = '🎬'
-    label = 'Watch Video'
-    title = c?.title || `Watch and discover`
-  } else if (act.type === 'drag_drop') {
-    icon = '🧩'
-    label = 'Puzzle Match'
-    title = `Match the pairs together`
-  } else {
-    icon = '⭐'
-    label = ((act as any).type as string || 'Activity').replace(/[-_]/g, ' ')
-    title = `Interactive Activity`
-  }
-
-  return { icon, label, title }
 }
 
 export default function LessonDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { lesson, activities, loading, load } = useLesson(id)
-  const { child } = useAppStore()
 
-  useEffect(() => { load() }, [load])
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false)
+  const [showAllActivities, setShowAllActivities] = useState(false)
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const subjectSlug = ((lesson as unknown as { subject?: { slug?: SubjectSlug } })?.subject?.slug as SubjectSlug) ?? 'creative-arts'
+  const charConfig = subjectCharacterMap[subjectSlug] ?? subjectCharacterMap['creative-arts']
+
+  // Clean activity breakdown
+  const activityCounts = useMemo(() => {
+    let listen = 0
+    let speak = 0
+    let tap = 0
+    activities.forEach(a => {
+      if (a.type === 'listen') listen++
+      else if (a.type === 'speak') speak++
+      else tap++
+    })
+    return { listen, speak, tap }
+  }, [activities])
+
+  // Web Speech API Voice Reader
+  const toggleAudio = (text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+
+    if (isPlayingAudio) {
+      window.speechSynthesis.cancel()
+      setIsPlayingAudio(false)
+      return
+    }
+
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.92
+    utterance.pitch = 1.15
+    utterance.onend = () => setIsPlayingAudio(false)
+    utterance.onerror = () => setIsPlayingAudio(false)
+    setIsPlayingAudio(true)
+    window.speechSynthesis.speak(utterance)
+  }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[70vh]">
+      <div className="flex flex-col items-center justify-center min-h-[70vh] bg-[#fffdf8] font-nunito gap-3">
         <Spinner size={44} color="#10b981" />
+        <p className="text-slate-500 font-extrabold text-sm">Getting your lesson ready...</p>
       </div>
     )
   }
 
   if (!lesson) {
     return (
-      <div className="text-center py-24 text-slate-600 font-bold font-nunito">
+      <div className="text-center py-24 text-slate-600 font-bold font-nunito bg-[#fffdf8] min-h-[70vh]">
         <p className="text-2xl mb-4">Lesson not found 🔍</p>
         <Link href="/lessons" className="text-emerald-600 underline font-black">
           Back to Course Map
@@ -211,233 +153,253 @@ export default function LessonDetailPage() {
     )
   }
 
-  const subjectSlug = ((lesson as any).subject?.slug as SubjectSlug) ?? 'math'
-  const theme = subjectThemeConfig[subjectSlug] ?? subjectThemeConfig.math
-  const subjectName = (lesson as any).subject?.name ?? 'Mathematics'
+  const narrationScript = `${lesson.title}. ${lesson.description}. ${charConfig.greeting}`
 
   return (
-    <div className={`w-full min-h-screen ${theme.bg} transition-colors duration-500 relative overflow-hidden pb-16`}>
+    <div className="w-full min-h-screen bg-[#fffdf8] relative overflow-hidden pb-20 font-nunito selection:bg-amber-300 selection:text-slate-900">
       
-      {/* ── Playful Sky Doodles & Ambient Floating Props ─────────────── */}
-      <AnimatedSun className="absolute top-8 right-8 sm:right-20 w-28 sm:w-36 z-0 pointer-events-none" />
-      <DoodleCloud className="absolute top-12 left-6 sm:left-16 w-36 sm:w-48 z-0 pointer-events-none" delay={0} />
-      <DoodleCloud className="absolute top-52 right-1/4 w-32 sm:w-40 z-0 pointer-events-none" delay={1.8} />
-      <DoodleStar className="absolute top-28 left-1/3 text-amber-300 w-8 h-8 z-0 pointer-events-none" />
-      <DoodleStar className="absolute top-72 right-12 text-amber-300 w-6 h-6 z-0 pointer-events-none" />
+      {/* ── Soft Sunlit Sky Gradient Background (Clean WonderLearn Style) ── */}
+      <div className="absolute top-0 left-0 right-0 h-80 bg-gradient-to-b from-[#e0f2fe] via-[#f0f9ff]/70 to-[#fffdf8] pointer-events-none z-0" />
 
-      {/* Floating Subject-Themed Icons in Background */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden select-none">
-        {theme.doodles.map((doodle, idx) => (
-          <span
-            key={idx}
-            style={{
-              top: `${15 + (idx * 14)}%`,
-              left: idx % 2 === 0 ? `${4 + (idx * 3)}%` : `${82 - (idx * 2)}%`,
-            }}
-            className="absolute text-2xl sm:text-3xl opacity-35 filter drop-shadow-sm pointer-events-none animate-pulse"
-          >
-            {doodle}
-          </span>
-        ))}
-      </div>
 
-      {/* ── Rolling Hills Layer at Bottom ───────────────────────────── */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        {/* Back Hill */}
-        <svg className="absolute bottom-0 w-full h-[420px]" viewBox="0 0 1440 420" preserveAspectRatio="none">
-          <path
-            d="M0,220 C360,120 640,280 980,160 C1200,90 1440,140 1440,140 L1440,420 L0,420 Z"
-            fill={theme.hillBack}
-            opacity="0.5"
-          />
-        </svg>
-        {/* Front Hill */}
-        <svg className="absolute bottom-0 w-full h-[320px]" viewBox="0 0 1440 320" preserveAspectRatio="none">
-          <path
-            d="M0,140 C280,70 580,200 920,100 C1180,40 1440,110 1440,110 L1440,320 L0,320 Z"
-            fill={theme.hillFront}
-            opacity="0.85"
-          />
-        </svg>
-      </div>
-
-      {/* ── Main Foreground Content Container ────────────────────────── */}
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
+      {/* ── Main Clean Container ─────────────────────────────────────── */}
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 pt-5 sm:pt-7">
         
-        {/* 3D Back Navigation Pill */}
-        <div className="mb-6">
+        {/* Top Back Pill */}
+        <div className="mb-6 flex items-center justify-between">
           <Link
-            href="/lessons"
-            className="inline-flex items-center gap-2 bg-white/95 hover:bg-white text-[#1d2445] px-4 sm:px-5 py-2.5 rounded-2xl border-2 border-white/80 border-b-4 border-slate-200 shadow-md transition-all hover:scale-105 active:translate-y-0.5 font-nunito font-black text-xs sm:text-sm"
+            href={lesson.subject_id ? `/lessons?subject=${lesson.subject_id}` : '/lessons'}
+            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-2xl border-2 border-slate-200 border-b-[4px] border-b-slate-300 shadow-xs transition-all hover:scale-102 active:translate-y-0.5 font-black text-xs sm:text-sm"
           >
-            <ArrowLeft size={16} strokeWidth={3} className="text-[#10b981]" />
-            <span>Back to Adventure Map</span>
+            <ArrowLeft size={16} strokeWidth={3} className="text-emerald-600" />
+            <span>Back to Courses</span>
           </Link>
+
+          <span className="text-xs font-bold text-slate-400">
+            Ages 0–5 • Preschool &amp; Kindergarten
+          </span>
         </div>
 
-        {/* ── Main Lesson Hero Card (Vibrant 3D Toy Brick Style) ──────── */}
+        {/* ── HERO SHOWCASE CARD (CLEAN, FOCUSED, BREATHABLE) ─────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-[36px] overflow-hidden border-4 border-white border-b-[8px] border-b-slate-200 shadow-2xl mb-8"
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-[32px] sm:rounded-[36px] overflow-hidden border-2 border-slate-200 border-b-[8px] border-b-slate-300 shadow-xl mb-8"
         >
-          {/* Top Vibrant Header Banner */}
-          <div className={`${theme.headerBg} border-b-4 ${theme.headerBorder} p-6 sm:p-8 text-white relative overflow-hidden`}>
-            {/* Glossy top bevel highlight */}
-            <div className="absolute top-0 left-0 right-0 h-6 bg-white/15 pointer-events-none" />
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
-              <div className="space-y-1.5">
-                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-3.5 py-1 text-xs font-black uppercase tracking-wider text-white">
-                  <SubjectIcon slug={subjectSlug} size={16} className="text-white" />
-                  <span>{subjectName}</span>
-                </div>
-                <h1 className="text-2xl sm:text-4xl font-black font-nunito tracking-tight text-white drop-shadow-sm">
-                  {lesson.title}
-                </h1>
-                <p className="text-white/90 font-bold text-sm sm:text-base max-w-xl">
-                  {lesson.description}
-                </p>
-              </div>
-
-              {/* Subject Big Icon Badge in Corner */}
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-white/20 border-2 border-white/40 flex items-center justify-center text-3xl sm:text-4xl shadow-md flex-shrink-0">
-                {subjectSlug === 'math' ? '🧮' : subjectSlug === 'english' ? '📚' : subjectSlug === 'science' ? '🔬' : '🎨'}
-              </div>
-            </div>
-
-            {/* Mascot Pip Speech Encouragement */}
-            <div className="mt-4 pt-4 border-t border-white/20 flex items-center gap-2.5 text-xs sm:text-sm font-extrabold text-white/95">
-              <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">
-                💡
-              </span>
-              <span>{theme.mascotTip}</span>
-            </div>
-          </div>
-
-          {/* Card Body: Stat Pills & Instant CTA */}
-          <div className="p-6 sm:p-8 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="flex flex-col md:flex-row items-center">
             
-            {/* Stat Badges */}
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-              {/* XP Reward Badge */}
-              <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-300 border-b-4 border-b-amber-400 rounded-2xl px-3.5 py-1.5 text-xs sm:text-sm font-black text-amber-900 shadow-sm">
-                <Star size={15} fill="#eab308" className="text-amber-500" />
-                <span>+{lesson.xp_reward} XP Reward</span>
+            {/* Left: Illustrated 3D Character Box */}
+            <div className="w-full md:w-5/12 bg-gradient-to-br from-pink-50 via-sky-50 to-amber-50/50 p-6 sm:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-100 relative">
+              <div className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-3xl bg-white p-3 shadow-md border-2 border-white/80 flex items-center justify-center">
+                <Image
+                  src={charConfig.imageSrc}
+                  alt={charConfig.characterName}
+                  width={200}
+                  height={200}
+                  className="object-contain w-full h-full hover:scale-105 transition-transform duration-300"
+                  priority
+                />
               </div>
 
-              {/* Difficulty Badge */}
-              <div className={`px-3.5 py-1.5 rounded-2xl text-xs sm:text-sm font-black border-2 border-b-4 shadow-sm uppercase ${
-                lesson.difficulty === 'easy'
-                  ? 'bg-emerald-50 border-emerald-300 border-b-emerald-400 text-emerald-900'
-                  : lesson.difficulty === 'medium'
-                  ? 'bg-amber-50 border-amber-300 border-b-amber-400 text-amber-900'
-                  : 'bg-rose-50 border-rose-300 border-b-rose-400 text-rose-900'
-              }`}>
-                {lesson.difficulty}
-              </div>
-
-              {/* Activities Count */}
-              <div className="flex items-center gap-1.5 bg-sky-50 border-2 border-sky-300 border-b-4 border-b-sky-400 rounded-2xl px-3.5 py-1.5 text-xs sm:text-sm font-black text-sky-900 shadow-sm">
-                <BookOpen size={14} className="text-sky-600" />
-                <span>{lesson.activities_count ?? activities.length} activities</span>
+              {/* Character name label */}
+              <div className="mt-3 text-center">
+                <span className="text-xs font-black text-slate-800 tracking-wide">
+                  {charConfig.characterName}
+                </span>
+                <p className="text-[11px] font-bold text-slate-500">Your Friendly Guide</p>
               </div>
             </div>
 
-            {/* Quick Play CTA inside Hero Header */}
-            <Link href={`/lesson/${lesson.id}/play`} className="w-full sm:w-auto">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 bg-[#10b981] hover:bg-[#059669] text-white font-black font-nunito text-sm sm:text-base rounded-2xl border-2 border-white/60 border-b-4 border-[#047857] shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2.5 transition-all active:translate-y-0.5"
-              >
-                <PlayCircle size={20} />
-                <span>Start Adventure!</span>
-              </motion.button>
-            </Link>
+            {/* Right: Lesson Details & Clear Single CTA */}
+            <div className="w-full md:w-7/12 p-6 sm:p-8 space-y-4">
+              
+              {/* Category Pill */}
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-100 text-pink-900 border border-pink-200 text-xs font-black uppercase tracking-wider">
+                  {charConfig.badge}
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-black">
+                  <Star size={12} fill="#eab308" className="text-amber-500" />
+                  <span>+{lesson.xp_reward} XP</span>
+                </span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-3xl sm:text-4xl font-black font-nunito tracking-tight text-[#0f4c5c] leading-tight">
+                {lesson.title}
+              </h1>
+
+              {/* Description */}
+              <p className="text-slate-600 font-bold text-sm sm:text-base leading-relaxed">
+                {lesson.description}. Join us to mix vibrant colors, speak words out loud, and play interactive games!
+              </p>
+
+              {/* Companion Speech Bubble with Audio */}
+              <div className="bg-sky-50/80 rounded-2xl p-3 sm:p-3.5 border border-sky-200/90 flex items-start gap-3">
+                <span className="text-xl flex-shrink-0">💬</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-slate-800 font-bold text-xs sm:text-sm leading-snug">
+                    {charConfig.greeting}
+                  </p>
+                </div>
+                <button
+                  onClick={() => toggleAudio(narrationScript)}
+                  className={`p-2 rounded-xl border flex-shrink-0 transition-all ${
+                    isPlayingAudio
+                      ? 'bg-amber-200 text-amber-900 border-amber-300 animate-pulse'
+                      : 'bg-white text-sky-700 hover:bg-sky-100 border-sky-200 shadow-2xs'
+                  }`}
+                  title="Hear greeting out loud"
+                >
+                  {isPlayingAudio ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                </button>
+              </div>
+
+              {/* Big Primary Action Button */}
+              <div className="pt-2">
+                <Link href={`/lesson/${lesson.id}/play`} className="block">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-4 px-8 bg-[#10b981] hover:bg-[#059669] text-white font-black font-nunito text-base sm:text-lg rounded-2xl border-2 border-white/60 border-b-[5px] border-[#047857] shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2.5 transition-all active:translate-y-0.5"
+                  >
+                    <PlayCircle size={22} />
+                    <span>Start Adventure! 🚀</span>
+                  </motion.button>
+                </Link>
+              </div>
+
+            </div>
+
           </div>
         </motion.div>
 
-        {/* ── Colorful Activities List ("What you will learn") ─────────── */}
-        <div className="bg-white/95 backdrop-blur-md rounded-[36px] border-4 border-white border-b-[8px] border-b-slate-200 p-6 sm:p-8 shadow-2xl mb-8">
+        {/* ── WHAT'S INSIDE THIS LESSON (CLEAN 3-STEP SUMMARY) ──────── */}
+        <div className="bg-white rounded-[32px] border-2 border-slate-200 border-b-[6px] border-b-slate-300 p-6 sm:p-8 shadow-sm mb-6">
           
           <div className="flex items-center justify-between mb-5">
             <div>
-              <div className="flex items-center gap-2">
-                <Sparkles size={18} className="text-amber-500" fill="#f59e0b" />
-                <h2 className="text-[#1d2445] font-black text-xl sm:text-2xl font-nunito">
-                  What you will learn
-                </h2>
-              </div>
-              <p className="text-slate-500 font-bold text-xs sm:text-sm font-nunito mt-0.5">
-                Fun interactive voice, listen & challenge activities
+              <h2 className="text-[#0f4c5c] font-black text-xl sm:text-2xl font-nunito tracking-tight">
+                What&apos;s Inside This Adventure
+              </h2>
+              <p className="text-slate-500 font-bold text-xs sm:text-sm mt-0.5">
+                {activities.length} fun, gentle interactive steps designed for young learners
               </p>
             </div>
-
-            <span className="bg-emerald-100 text-emerald-900 font-black text-xs font-nunito px-3 py-1 rounded-full border border-emerald-300">
-              {activities.length} Steps
+            <span className="hidden sm:inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-black">
+              🌱 Gentle &amp; Self-Paced
             </span>
           </div>
 
-          {/* List of Colorful Pastel Activity Cards */}
-          <div className="flex flex-col gap-3">
-            {activities.map((act, i) => {
-              const info = getActivityInfo(act, i)
-              const style = activityCardStyles[i % activityCardStyles.length]
+          {/* 3 Balanced Pillars */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            
+            {/* Pillar 1: Listen */}
+            <div className="bg-sky-50/70 rounded-2xl p-4 border-2 border-sky-200 border-b-[3px] border-b-sky-300">
+              <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl mb-2.5">
+                <Headphones size={20} />
+              </div>
+              <h3 className="text-slate-800 font-black text-sm mb-1">
+                {activityCounts.listen} Listen &amp; Learn
+              </h3>
+              <p className="text-slate-600 font-bold text-xs leading-relaxed">
+                Pip introduces each color with clear voice narration and joyful animations.
+              </p>
+            </div>
 
-              return (
-                <motion.div
-                  key={act.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  whileHover={{ scale: 1.01 }}
-                  className={`flex items-center gap-3.5 sm:gap-4 ${style.bg} rounded-2xl p-3 sm:p-4 border-2 border-b-4 ${style.border} shadow-sm transition-all`}
-                >
-                  {/* Step Number Round Badge */}
-                  <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-2xl ${style.badge} flex items-center justify-center font-black text-xs sm:text-sm font-nunito shadow-sm flex-shrink-0`}>
-                    {i + 1}
-                  </div>
+            {/* Pillar 2: Speak */}
+            <div className="bg-rose-50/70 rounded-2xl p-4 border-2 border-rose-200 border-b-[3px] border-b-rose-300">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-xl mb-2.5">
+                <Mic size={20} />
+              </div>
+              <h3 className="text-slate-800 font-black text-sm mb-1">
+                {activityCounts.speak} Speak Out Loud
+              </h3>
+              <p className="text-slate-600 font-bold text-xs leading-relaxed">
+                Practice saying color names aloud with instant, encouraging voice feedback.
+              </p>
+            </div>
 
-                  {/* Activity Type Icon */}
-                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl ${style.iconBg} flex items-center justify-center text-lg sm:text-xl shadow-xs flex-shrink-0`}>
-                    {info.icon}
-                  </div>
+            {/* Pillar 3: Tap & Match */}
+            <div className="bg-amber-50/70 rounded-2xl p-4 border-2 border-amber-200 border-b-[3px] border-b-amber-300">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl mb-2.5">
+                <Sparkles size={20} />
+              </div>
+              <h3 className="text-slate-800 font-black text-sm mb-1">
+                {activityCounts.tap} Tap &amp; Match Quests
+              </h3>
+              <p className="text-slate-600 font-bold text-xs leading-relaxed">
+                Fun interactive multiple-choice cards and puzzles that test recognition.
+              </p>
+            </div>
 
-                  {/* Activity Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#1d2445] font-black text-xs sm:text-sm font-nunito">
-                        {info.label}
-                      </span>
-                    </div>
-                    <p className="text-slate-600 font-bold text-xs font-nunito truncate mt-0.5">
-                      {info.title}
-                    </p>
-                  </div>
-
-                  {/* XP Reward Pill */}
-                  <div className="bg-amber-100 border border-amber-300 rounded-xl px-2.5 sm:px-3 py-1 flex items-center gap-1 text-[11px] sm:text-xs font-black text-amber-900 flex-shrink-0">
-                    <Star size={11} fill="#d97706" className="text-amber-600" />
-                    <span>+{act.xp_reward} XP</span>
-                  </div>
-                </motion.div>
-              )
-            })}
           </div>
+
+          {/* Expandable Step-by-Step List (For Parents/Curious Kids) */}
+          <div className="mt-6 pt-5 border-t border-slate-100">
+            <button
+              onClick={() => setShowAllActivities(!showAllActivities)}
+              className="w-full flex items-center justify-between text-slate-600 hover:text-slate-900 font-black text-xs sm:text-sm py-2 px-3 rounded-xl hover:bg-slate-50 transition-colors"
+            >
+              <span>{showAllActivities ? 'Hide Step-by-Step Details' : `View All ${activities.length} Steps in Order`}</span>
+              {showAllActivities ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+
+            <AnimatePresence>
+              {showAllActivities && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-2 pt-4 overflow-hidden"
+                >
+                  {activities.map((act, i) => {
+                    const c = act.content as unknown as Record<string, unknown> | undefined
+                    const previewText = (c?.question as string) || (c?.text as string) || (c?.expected as string) || (c?.prompt as string) || 'Interactive step'
+
+                    return (
+                      <div
+                        key={act.id}
+                        className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-lg bg-emerald-500 text-white font-black text-[11px] flex items-center justify-center">
+                            {i + 1}
+                          </span>
+                          <span className="font-black text-slate-700">
+                            {act.type === 'listen' ? '🎧 Listen' : act.type === 'speak' ? '🎙️ Voice' : '🎯 Quiz'}:
+                          </span>
+                          <span className="text-slate-600 font-bold truncate max-w-xs sm:max-w-md">
+                            {previewText}
+                          </span>
+                        </div>
+                        <span className="text-amber-800 font-black text-[11px] flex-shrink-0">
+                          +{act.xp_reward} XP
+                        </span>
+                      </div>
+                    )
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
         </div>
 
-        {/* ── Big Bottom Start Action Button ─────────────────────────── */}
-        <Link href={`/lesson/${lesson.id}/play`} className="block pb-8">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full py-4 sm:py-5 px-8 bg-[#10b981] hover:bg-[#059669] text-white font-black font-nunito text-lg sm:text-xl rounded-3xl border-2 border-white/60 border-b-[6px] border-[#047857] shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition-all active:translate-y-0.5"
-          >
-            <PlayCircle size={28} />
-            <span>Start Lesson Adventure!</span>
-          </motion.button>
-        </Link>
+        {/* ── CLEAN BOTTOM CTA BAR ─────────────────────────────────── */}
+        <div className="text-center pt-2">
+          <Link href={`/lesson/${lesson.id}/play`} className="inline-block">
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="px-10 py-4 bg-[#10b981] hover:bg-[#059669] text-white font-black font-nunito text-base sm:text-lg rounded-2xl border-2 border-white/60 border-b-[5px] border-[#047857] shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2.5 transition-all active:translate-y-0.5"
+            >
+              <PlayCircle size={22} />
+              <span>Let&apos;s Play Now! 🚀</span>
+            </motion.button>
+          </Link>
+        </div>
 
       </div>
     </div>

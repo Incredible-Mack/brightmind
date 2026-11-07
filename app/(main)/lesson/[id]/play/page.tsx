@@ -22,6 +22,7 @@ import { localAsrSupported, preloadLocalAsr, onAsrStatus } from '@/lib/asr/local
 import { MicrophonePanel } from '@/components/lesson/MicrophonePanel'
 import { Pip } from '@/components/mascot/Pip'
 import { SpeechBubble } from '@/components/mascot/SpeechBubble'
+import { AnimatedSun, DoodleCloud } from '@/components/home/KidsDoodles'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import type { Activity, TypeAnswerContent } from '@/types/activity'
@@ -882,45 +883,45 @@ export default function LessonPlayPage() {
   }
 
   if (loading || !lesson) return (
-    <div className="min-h-screen bg-[#131f24] flex items-center justify-center">
-      <Spinner size={44} color="#58cc02" />
+    <div className="min-h-screen bg-[#f0f9ff] flex items-center justify-center">
+      <Spinner size={44} color="#0d9488" />
     </div>
   )
 
   if (!loading && lesson && activities.length === 0 && (!planned || planned.length === 0)) return (
-    <div className="min-h-screen bg-white text-[#1d2445] flex flex-col items-center justify-center p-6 text-center font-nunito">
+    <div className="min-h-screen bg-[#f0f9ff] text-[#1d2445] flex flex-col items-center justify-center p-6 text-center font-nunito">
       <Pip size="xl" mood="sad" animate="idle" />
-      <h1 className="text-3xl font-black text-[#1d2445] mt-6 mb-2">Couldn&apos;t load activities</h1>
+      <h1 className="text-3xl font-black text-[#0f4c5c] mt-6 mb-2">Couldn&apos;t load activities</h1>
       <p className="text-slate-500 font-bold text-sm mb-8">Please check your connection and give it another try.</p>
       <button onClick={() => load()} className="px-8 py-3.5 bg-[#58cc02] hover:bg-[#46a302] text-white font-black rounded-2xl border-2 border-[#58cc02] border-b-4 border-b-[#46a302] shadow-sm uppercase tracking-wider">
         Try Again
       </button>
-      <button onClick={() => router.push(isDemo ? '/' : `/lessons/${id}`)} className="mt-4 text-slate-400 hover:text-slate-600 font-bold text-sm">
+      <button onClick={() => router.push(isDemo ? '/' : `/lessons/${id}`)} className="mt-4 text-slate-500 hover:text-slate-700 font-bold text-sm">
         Back to Course
       </button>
     </div>
   )
 
-  // Duolingo-style Intro Screen (Guest / Demo friendly)
+  // Duolingo-style Intro Screen (Clean, Bright Steps Theme)
   if (!started && !completed && (premium || lives > 0 || isDemo)) {
     return (
-      <div className="min-h-screen bg-[#131f24] text-white flex flex-col font-nunito">
+      <div className="min-h-screen bg-[#f0f9ff] text-slate-800 flex flex-col font-nunito">
         <div className="max-w-4xl mx-auto w-full px-6 py-6 flex items-center justify-between">
-          <button onClick={() => router.push(isDemo ? '/' : `/lessons/${id}`)} className="p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
-            <X size={26} strokeWidth={2.5} />
+          <button onClick={() => router.push(isDemo ? '/' : `/lessons/${id}`)} className="p-2.5 rounded-2xl text-slate-400 hover:text-slate-700 hover:bg-white border border-transparent hover:border-slate-200 shadow-2xs transition-all">
+            <X size={24} strokeWidth={2.5} />
           </button>
-          <div className="flex items-center gap-1.5 text-rose-500 font-black text-lg bg-rose-500/10 px-3.5 py-1.5 rounded-full border border-rose-500/30">
+          <div className="flex items-center gap-1.5 text-rose-500 font-black text-lg bg-white px-3.5 py-1.5 rounded-full border-2 border-rose-100 shadow-xs">
             <Heart size={20} fill="#ef4444" />
-            <span className="text-white">{premium || isDemo ? '∞' : lives}</span>
+            <span className="text-slate-700">{premium || isDemo ? '∞' : lives}</span>
           </div>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center max-w-md mx-auto w-full">
           <Pip size="xl" mood="excited" animate="idle" />
-          <h1 className="text-3xl sm:text-4xl font-black text-white mt-6 mb-3 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-black text-[#0f4c5c] mt-6 mb-3 tracking-tight">
             {isDemo ? 'Numbers 1, 2, 3 Counting Adventure' : lesson.title}
           </h1>
-          <p className="text-slate-300 font-bold text-base mb-8 leading-relaxed">
+          <p className="text-slate-600 font-bold text-base mb-8 leading-relaxed">
             {isDemo
               ? 'Try out Bright Steps! Pip will speak with you, count objects, and guide your practice — completely free, no sign-in required.'
               : 'Turn your volume up! Pip will speak with you and guide your practice.'}
@@ -969,7 +970,7 @@ export default function LessonPlayPage() {
             Get Plus (Unlimited ❤️)
           </button>
           <button
-            onClick={() => router.push('/lessons')}
+            onClick={() => router.push(lesson?.subject_id ? `/lessons?subject=${lesson.subject_id}` : '/lessons')}
             className="text-slate-400 hover:text-slate-600 font-black text-sm pt-2"
           >
             Back to Course Map
@@ -979,29 +980,29 @@ export default function LessonPlayPage() {
     )
   }
 
-  // Completed Screen (Duolingo Dark + Demo celebration)
+  // Completed Screen (Clean Bright Steps Celebration)
   if (completed) {
     return (
-      <div className="min-h-screen bg-[#131f24] text-white flex flex-col font-nunito">
+      <div className="min-h-screen bg-[#f0f9ff] text-slate-800 flex flex-col font-nunito">
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto w-full">
           <Pip size="xl" mood="excited" animate="correct" />
-          <h1 className="text-4xl font-black text-white mt-6 mb-2">
+          <h1 className="text-4xl font-black text-[#0f4c5c] mt-6 mb-2">
             {isDemo ? 'Demo Lesson Complete! 🎉' : 'Lesson Complete!'}
           </h1>
-          <p className="text-[#4ade80] font-black text-lg mb-4">{celebrationMsg}</p>
+          <p className="text-emerald-600 font-black text-lg mb-4">{celebrationMsg}</p>
 
-          <div className="flex items-center gap-3 bg-amber-500/10 border-2 border-amber-400/30 rounded-2xl px-6 py-3 my-4">
+          <div className="flex items-center gap-3 bg-amber-50 border-2 border-amber-200 rounded-2xl px-6 py-3 my-4 shadow-xs">
             <span className="text-3xl">⭐</span>
             <div className="text-left">
-              <p className="text-amber-300 font-black text-xl">+{totalXP} XP</p>
-              <p className="text-amber-200/80 font-bold text-xs">Total experience gained</p>
+              <p className="text-amber-800 font-black text-xl">+{totalXP} XP</p>
+              <p className="text-amber-700 font-bold text-xs">Total experience gained</p>
             </div>
           </div>
 
           {isDemo ? (
-            <div className="w-full bg-[#18252d] border-2 border-[#2e3e48] rounded-3xl p-5 my-4 text-center">
-              <p className="text-[#58cc02] font-black text-sm uppercase tracking-wider mb-1">🎉 Fantastic job completing the demo!</p>
-              <p className="text-slate-300 font-bold text-xs leading-relaxed mb-4">
+            <div className="w-full bg-white border-2 border-slate-200 rounded-3xl p-5 my-4 text-center shadow-sm">
+              <p className="text-emerald-600 font-black text-sm uppercase tracking-wider mb-1">🎉 Fantastic job completing the demo!</p>
+              <p className="text-slate-600 font-bold text-xs leading-relaxed mb-4">
                 Sign up for a free account now to save your streak, track badges, and unlock all 20+ lessons!
               </p>
               <button
@@ -1014,14 +1015,14 @@ export default function LessonPlayPage() {
           ) : (
             <>
               {newBadges.length > 0 && (
-                <div className="w-full bg-[#18252d] border-2 border-[#2e3e48] rounded-3xl p-4 my-4">
-                  <p className="text-slate-400 font-black text-xs uppercase tracking-wider mb-2">New Badge Unlocked!</p>
+                <div className="w-full bg-white border-2 border-slate-200 rounded-3xl p-4 my-4 shadow-sm">
+                  <p className="text-slate-500 font-black text-xs uppercase tracking-wider mb-2">New Badge Unlocked!</p>
                   {newBadges.map(b => (
-                    <div key={b.slug} className="flex items-center gap-3 bg-[#24333b] p-3 rounded-2xl border border-slate-700 shadow-xs">
+                    <div key={b.slug} className="flex items-center gap-3 bg-sky-50 p-3 rounded-2xl border border-sky-100 shadow-xs">
                       <span className="text-3xl">{b.icon}</span>
                       <div className="text-left">
-                        <p className="text-white font-black text-sm">{b.title}</p>
-                        {b.xp_bonus > 0 && <p className="text-emerald-400 font-black text-xs">+{b.xp_bonus} XP bonus</p>}
+                        <p className="text-slate-800 font-black text-sm">{b.title}</p>
+                        {b.xp_bonus > 0 && <p className="text-emerald-600 font-black text-xs">+{b.xp_bonus} XP bonus</p>}
                       </div>
                     </div>
                   ))}
@@ -1029,7 +1030,7 @@ export default function LessonPlayPage() {
               )}
 
               {coach.note && (
-                <p className="text-slate-300 font-bold text-sm bg-purple-950/40 border border-purple-500/30 rounded-2xl p-4 my-3 text-purple-200">
+                <p className="text-purple-800 font-bold text-sm bg-purple-50 border border-purple-200 rounded-2xl p-4 my-3">
                   💡 {coach.note.child}
                 </p>
               )}
@@ -1041,13 +1042,13 @@ export default function LessonPlayPage() {
               <>
                 <button
                   onClick={() => window.location.reload()}
-                  className="w-full py-3.5 bg-[#24333b] hover:bg-[#2c3d47] text-white font-black text-sm rounded-2xl border-2 border-[#324550] border-b-4 border-b-[#1c2930] uppercase tracking-wider"
+                  className="w-full py-3.5 bg-white hover:bg-slate-50 text-slate-700 font-black text-sm rounded-2xl border-2 border-slate-200 border-b-4 border-b-slate-300 uppercase tracking-wider shadow-xs"
                 >
                   Play Demo Again
                 </button>
                 <button
                   onClick={() => router.push('/lessons')}
-                  className="w-full py-3 text-slate-400 hover:text-white font-black text-xs uppercase tracking-wider"
+                  className="w-full py-3 text-slate-500 hover:text-slate-700 font-black text-xs uppercase tracking-wider"
                 >
                   Explore All Courses
                 </button>
@@ -1066,8 +1067,8 @@ export default function LessonPlayPage() {
                   )
                 })()}
                 <button
-                  onClick={() => router.push('/lessons')}
-                  className="w-full py-3.5 bg-[#24333b] hover:bg-[#2c3d47] text-slate-200 font-black text-sm rounded-2xl border-2 border-[#324550] border-b-4 border-b-[#1c2930] uppercase tracking-wider"
+                  onClick={() => router.push(lesson?.subject_id ? `/lessons?subject=${lesson.subject_id}` : '/lessons')}
+                  className="w-full py-3.5 bg-white hover:bg-slate-50 text-slate-700 font-black text-sm rounded-2xl border-2 border-slate-200 border-b-4 border-b-slate-300 uppercase tracking-wider shadow-xs"
                 >
                   Back to Course Map
                 </button>
@@ -1081,8 +1082,8 @@ export default function LessonPlayPage() {
 
   const act = currentActivity
   if (!act) return (
-    <div className="min-h-screen bg-[#131f24] flex items-center justify-center">
-      <Spinner size={44} color="#58cc02" />
+    <div className="min-h-screen bg-[#f0f9ff] flex items-center justify-center">
+      <Spinner size={44} color="#0d9488" />
     </div>
   )
 
@@ -1101,23 +1102,27 @@ export default function LessonPlayPage() {
   })()
 
   return (
-    <div className="min-h-screen bg-[#131f24] text-white flex flex-col font-nunito select-none">
+    <div className="min-h-screen bg-[#f0f9ff] text-slate-800 flex flex-col font-nunito select-none relative overflow-x-hidden">
       
-      {/* ── DUOLINGO TOP BAR ─────────────────────────────────────── */}
-      <header className="max-w-4xl mx-auto w-full px-4 sm:px-8 pt-3 sm:pt-4 pb-1.5 flex items-center gap-3 sm:gap-6 bg-[#131f24] sticky top-0 z-30">
+      {/* Background Whimsical Accents (Matches Home Theme) */}
+      <AnimatedSun className="absolute top-16 right-6 w-20 sm:w-28 pointer-events-none opacity-40 z-0 hidden sm:block" />
+      <DoodleCloud className="absolute top-28 left-4 w-28 sm:w-36 pointer-events-none opacity-40 z-0" delay={0.8} />
+
+      {/* ── CLEAN SUNLIT TOP BAR (MATCHING HOME THEME) ─────────── */}
+      <header className="max-w-4xl mx-auto w-full px-4 sm:px-8 pt-3 sm:pt-4 pb-2 flex items-center gap-3 sm:gap-6 bg-[#f0f9ff]/90 backdrop-blur-md sticky top-0 z-30 border-b border-sky-100">
         {/* Quit X button */}
         <button
           onClick={() => setShowQuitModal(true)}
-          className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+          className="p-2 text-slate-400 hover:text-slate-700 rounded-2xl hover:bg-white border border-transparent hover:border-slate-200 shadow-2xs transition-all"
           title="Quit Lesson"
         >
-          <X size={22} strokeWidth={2.8} />
+          <X size={20} strokeWidth={2.8} />
         </button>
 
-        {/* Duolingo Signature Glossy Progress Bar */}
-        <div className="flex-1 h-3 sm:h-3.5 bg-[#37464f] rounded-full overflow-hidden relative shadow-inner">
+        {/* Glossy Progress Bar with Sunlit Cyan/Emerald Track */}
+        <div className="flex-1 h-3.5 sm:h-4 bg-sky-200/70 rounded-full overflow-hidden relative shadow-inner border border-sky-200/80">
           <motion.div
-            className="h-full bg-[#58cc02] rounded-full relative"
+            className="h-full bg-emerald-500 rounded-full relative"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -1130,32 +1135,32 @@ export default function LessonPlayPage() {
         {/* Heart Lives Pill */}
         <div
           onClick={() => { if (!premium && lives < maxLives) refillLives() }}
-          className="flex items-center gap-1.5 text-rose-500 font-black text-sm sm:text-base px-2.5 py-1 rounded-2xl hover:bg-rose-50/10 cursor-pointer transition-colors"
+          className="flex items-center gap-1.5 text-rose-500 font-black text-sm sm:text-base px-3 py-1.5 rounded-2xl bg-white border-2 border-rose-100 shadow-xs hover:border-rose-300 cursor-pointer transition-all"
           title={premium ? 'Unlimited hearts' : `${lives} hearts left (Click to refill)`}
         >
-          <Heart size={20} fill="#f43f5e" className="text-rose-500 animate-pulse" />
-          <span className="font-extrabold text-white">{premium ? '∞' : lives}</span>
+          <Heart size={18} fill="#f43f5e" className="text-rose-500 animate-pulse" />
+          <span className="font-black text-slate-700">{premium ? '∞' : lives}</span>
         </div>
       </header>
 
       {/* ── MAIN EXERCISE CONTAINER (FITS SCREEN NATURALLY, SCROLLABLE IF SMALL) ── */}
-      <main className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full px-3 sm:px-6 pt-1 sm:pt-2 pb-24 sm:pb-28">
+      <main className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full px-3 sm:px-6 pt-2 sm:pt-4 pb-24 sm:pb-28">
         
         {/* Badge Indicator */}
-        <div className="flex items-center gap-2 mb-1.5 self-start">
-          <span className="text-[11px] font-black uppercase tracking-wider text-[#c084fc] bg-[#7c3aed]/20 border border-[#a855f7]/30 px-3 py-1 rounded-full flex items-center gap-1.5">
+        <div className="flex items-center gap-2 mb-2 self-start">
+          <span className="text-[11px] font-black uppercase tracking-wider text-sky-800 bg-sky-100/90 border border-sky-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
             {act.type === 'listen' ? '✨ NEW NUMBER' : act.type === 'speak' ? '🎤 SPEAK OUT LOUD' : act.type === 'tap_answer' ? '✨ CHOOSE ANSWER' : act.type === 'type_answer' ? '⌨️ WRITE ANSWER' : '🧩 MATCH PAIRS'}
           </span>
-          {notice && <span className="text-xs font-bold text-emerald-400">{notice}</span>}
+          {notice && <span className="text-xs font-bold text-emerald-600">{notice}</span>}
         </div>
 
-        {/* Mascot + Speech Prompt Area (Duolingo Style - Compact Single Voice) */}
-        <div className="flex items-center gap-3 mb-2 sm:mb-2.5 w-full">
+        {/* Mascot + Speech Prompt Area (Clean Light Speech Bubble) */}
+        <div className="flex items-center gap-3 mb-3 sm:mb-4 w-full">
           <div className="flex-shrink-0">
             <Pip size="sm" mood={pipMood} animate={pipAnim} />
           </div>
           <div className="flex-1 min-w-0">
-            <SpeechBubble text={hint ?? speech} loading={speechLoading} dark={true} />
+            <SpeechBubble text={hint ?? speech} loading={speechLoading} dark={false} />
           </div>
         </div>
 
@@ -1185,14 +1190,14 @@ export default function LessonPlayPage() {
                     initial={{ scale: 0.95, opacity: 0, y: 12 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     transition={{ type: 'spring', damping: 18, stiffness: 220 }}
-                    className="w-full max-w-md bg-[#18252d] rounded-2xl sm:rounded-3xl p-3 sm:p-4 border-2 border-[#2e3e48] border-b-4 border-b-[#233139] shadow-lg flex flex-col items-center text-center relative"
+                    className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border-2 border-slate-200 border-b-[5px] border-b-slate-300 shadow-sm flex flex-col items-center text-center relative"
                   >
                     {/* Teacher Definition Badge */}
                     {teach.definition && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-extrabold text-[11px] sm:text-xs mb-1 shadow-xs"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-extrabold text-[11px] sm:text-xs mb-1 shadow-2xs"
                       >
                         <span>💡</span>
                         <span>Meaning: {teach.definition}</span>
@@ -1201,10 +1206,10 @@ export default function LessonPlayPage() {
 
                     {teach.equation ? (
                       <div className="flex flex-col items-center my-1 select-none">
-                        <div className="flex items-center justify-center gap-2 sm:gap-3 text-4xl sm:text-5xl font-black text-white">
-                          <span className="text-white">{teach.leftNum}</span>
-                          <span className="text-[#58cc02]">{teach.operation === 'subtract' ? '−' : '+'}</span>
-                          <span className="text-white">{teach.rightNum}</span>
+                        <div className="flex items-center justify-center gap-2 sm:gap-3 text-4xl sm:text-5xl font-black text-slate-800">
+                          <span className="text-slate-800">{teach.leftNum}</span>
+                          <span className="text-emerald-600">{teach.operation === 'subtract' ? '−' : '+'}</span>
+                          <span className="text-slate-800">{teach.rightNum}</span>
                           <span className="text-slate-400">=</span>
                           <motion.span
                             animate={
@@ -1229,7 +1234,7 @@ export default function LessonPlayPage() {
                               speak(teach.reveal)
                               setTimeout(() => setHighlightNumber(false), 2500)
                             }}
-                            className="text-5xl sm:text-6xl font-black text-[#58cc02] cursor-pointer inline-flex items-center relative"
+                            className="text-5xl sm:text-6xl font-black text-emerald-600 cursor-pointer inline-flex items-center relative"
                             title={`Tap to hear: ${teach.reveal}`}
                           >
                             {teach.sum ?? teach.target}
@@ -1274,7 +1279,7 @@ export default function LessonPlayPage() {
                           className="relative inline-flex items-center justify-center my-1 cursor-pointer select-none"
                           title={`Tap to hear: ${teach.reveal}`}
                         >
-                          <span className="text-5xl sm:text-6xl font-black text-[#58cc02] leading-none select-none tracking-tight">
+                          <span className="text-5xl sm:text-6xl font-black text-emerald-600 leading-none select-none tracking-tight">
                             {num}
                           </span>
                           {highlightNumber && (
@@ -1288,7 +1293,7 @@ export default function LessonPlayPage() {
                             </motion.span>
                           )}
                         </motion.div>
-                        {word && <h3 className="text-xl sm:text-2xl font-black text-white capitalize leading-tight mb-1">{word}</h3>}
+                        {word && <h3 className="text-xl sm:text-2xl font-black text-slate-800 capitalize leading-tight mb-1">{word}</h3>}
                       </>
                     ) : (
                       <motion.div
@@ -1310,7 +1315,7 @@ export default function LessonPlayPage() {
                           setTimeout(() => setHighlightNumber(false), 2500)
                         }}
                       >
-                        <span className="text-4xl sm:text-5xl font-black text-[#58cc02] leading-none select-none tracking-tight">
+                        <span className="text-4xl sm:text-5xl font-black text-emerald-600 leading-none select-none tracking-tight">
                           {teach.target}
                         </span>
                       </motion.div>
@@ -1325,7 +1330,7 @@ export default function LessonPlayPage() {
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.5 }}
                           transition={{ type: 'spring', damping: 12, stiffness: 240 }}
-                          className="w-full flex flex-col items-center gap-1 my-1 p-2 bg-white/5 rounded-2xl border border-white/10 shadow-inner"
+                          className="w-full flex flex-col items-center gap-1 my-1 p-2.5 bg-sky-50/60 rounded-2xl border border-sky-100 shadow-inner"
                         >
                           {teach.leftObjects && teach.rightObjects ? (
                             <div className="flex items-center justify-center gap-2 sm:gap-3 text-2xl sm:text-3xl my-0.5">
@@ -1334,7 +1339,7 @@ export default function LessonPlayPage() {
                                   <span key={idx}>{o}</span>
                                 ))}
                               </div>
-                              <span className="text-lg sm:text-xl font-black text-[#58cc02]">{teach.operation === 'subtract' ? '−' : '+'}</span>
+                              <span className="text-lg sm:text-xl font-black text-emerald-600">{teach.operation === 'subtract' ? '−' : '+'}</span>
                               <div className="flex gap-1">
                                 {teach.rightObjects.map((o, idx) => (
                                   <span key={idx}>{o}</span>
@@ -1365,7 +1370,7 @@ export default function LessonPlayPage() {
                             </div>
                           ) : null}
                           {teach.example && (
-                            <p className="text-emerald-300 font-black text-xs sm:text-sm">
+                            <p className="text-emerald-700 font-black text-xs sm:text-sm">
                               {teach.example}
                             </p>
                           )}
@@ -1383,7 +1388,7 @@ export default function LessonPlayPage() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -8, scale: 0.95 }}
                         transition={{ type: 'spring', damping: 15 }}
-                        className="flex items-center gap-2 bg-amber-500/15 border border-amber-400/30 text-amber-300 px-3.5 py-1.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-xs"
+                        className="flex items-center gap-2 bg-amber-100 border border-amber-300 text-amber-900 px-3.5 py-1.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-xs"
                       >
                         <span className="text-lg animate-bounce">☝️</span>
                         <span>{teach.actionPrompt}</span>
@@ -1399,13 +1404,13 @@ export default function LessonPlayPage() {
                       transition={{ delay: 0.8 }}
                       type="button"
                       onClick={() => setListenPhase('identify')}
-                      className="text-xs text-slate-500 hover:text-slate-300 font-bold underline transition-colors"
+                      className="text-xs text-slate-400 hover:text-slate-600 font-bold underline transition-colors"
                     >
                       Skip audio to question 👉
                     </motion.button>
                   )}
 
-                  {/* Section 3: 3 Duolingo-style Identification Options — SHOWS LAST WITH STAGGERED ANIMATION */}
+                  {/* Section 3: 3 Identification Options */}
                   <AnimatePresence>
                     {(listenPhase === 'identify' || listenPhase === 'completed') && (
                       <motion.div
@@ -1420,14 +1425,14 @@ export default function LessonPlayPage() {
                             initial={{ opacity: 0, x: -8 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.1 }}
-                            className="text-xs font-black uppercase tracking-wider text-slate-400"
+                            className="text-xs font-black uppercase tracking-wider text-slate-500"
                           >
                             {listenCorrect ? '✨ You found it!' : '👉 Tap the correct answer:'}
                           </motion.p>
                           {!listenCorrect && (
                             <button
                               onClick={handleListenAgain}
-                              className="text-xs text-slate-400 hover:text-white font-black flex items-center gap-1.5 transition-colors"
+                              className="text-xs text-slate-500 hover:text-slate-800 font-black flex items-center gap-1.5 transition-colors"
                             >
                               <RotateCcw size={13} />
                               <span>Hear again</span>
@@ -1458,14 +1463,14 @@ export default function LessonPlayPage() {
                                 whileTap={!listenCorrect ? { scale: 0.95 } : {}}
                                 disabled={listenCorrect}
                                 onClick={() => handleListenPick(opt)}
-                                className={`p-2.5 sm:p-3 rounded-2xl border-2 font-black text-xl sm:text-2xl transition-colors flex flex-col items-center justify-center gap-0.5 text-center relative min-h-[64px] sm:min-h-[76px] cursor-pointer ${
+                                className={`p-2.5 sm:p-3 rounded-2xl border-2 font-black text-xl sm:text-2xl transition-all flex flex-col items-center justify-center gap-0.5 text-center relative min-h-[64px] sm:min-h-[76px] cursor-pointer shadow-xs ${
                                   showSuccess
-                                    ? 'border-[#58cc02] bg-[#1a3328] border-b-4 border-b-[#46a302] text-[#4ade80] shadow-md ring-2 ring-[#58cc02]/30'
+                                    ? 'border-emerald-500 bg-emerald-50 border-b-[5px] border-b-emerald-600 text-emerald-800 shadow-md ring-2 ring-emerald-300/40'
                                     : showWrong
-                                    ? 'border-[#ef4444] bg-[#37161b] border-b-4 border-b-[#b91c1c] text-[#fca5a5]'
+                                    ? 'border-rose-400 bg-rose-50 border-b-[5px] border-b-rose-600 text-rose-800'
                                     : isPicked
-                                    ? 'border-[#58cc02] bg-[#1a3328] border-b-4 border-b-[#46a302] text-[#4ade80]'
-                                    : 'border-[#2e3e48] bg-[#18252d] hover:bg-[#202f37] hover:border-[#384c58] border-b-4 border-b-[#233139] text-white active:translate-y-1 active:border-b-2'
+                                    ? 'border-sky-400 bg-sky-50 border-b-[5px] border-b-sky-600 text-sky-900 shadow-md'
+                                    : 'border-slate-200 bg-white hover:bg-sky-50/60 hover:border-sky-300 border-b-[5px] border-b-slate-300 text-slate-800 active:translate-y-1 active:border-b-2'
                                 }`}
                               >
                                 <div className="flex flex-col items-center justify-center">
@@ -1475,14 +1480,14 @@ export default function LessonPlayPage() {
                                       initial={{ scale: 0 }}
                                       animate={{ scale: 1 }}
                                       transition={{ type: 'spring', damping: 10 }}
-                                      className="mt-0.5 flex items-center gap-1 text-[11px] font-black text-[#58cc02]"
+                                      className="mt-0.5 flex items-center gap-1 text-[11px] font-black text-emerald-600"
                                     >
                                       <Check size={14} strokeWidth={3} />
                                       <span>Correct!</span>
                                     </motion.span>
                                   )}
                                 </div>
-                                <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-md border border-slate-700 bg-black/20 flex items-center justify-center text-[9px] font-black text-slate-400">
+                                <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-md border border-slate-200 bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-500">
                                   {idx + 1}
                                 </span>
                               </motion.button>
@@ -1496,7 +1501,7 @@ export default function LessonPlayPage() {
               )
             })()}
 
-            {/* 2. MULTIPLE CHOICE TAP ACTIVITY (DUOLINGO STYLE) */}
+            {/* 2. MULTIPLE CHOICE TAP ACTIVITY (CLEAN BRIGHT STEPS STYLE) */}
             {act.type === 'tap_answer' && (() => {
               const tapContent = act.content as unknown as Record<string, unknown>
               const options = normalizeTapOptions(tapContent)
@@ -1506,17 +1511,17 @@ export default function LessonPlayPage() {
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25 }}
-                    className="text-xl sm:text-2xl font-black text-white text-center mb-3 sm:mb-4"
+                    className="text-2xl sm:text-3xl font-black text-[#0f4c5c] text-center mb-4 sm:mb-6 tracking-tight"
                   >
                     {activityImage(tapContent) ? stripEmoji(String(tapContent.question ?? '')) : String(tapContent.question ?? '')}
                   </motion.h2>
 
-                  {/* Options List — Animates in Last with Staggered Pop */}
+                  {/* Options List — 2x2 or 3-col Grid with Soft Pastel Claymorphic Cards */}
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.2 }}
-                    className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5 w-full max-w-lg"
+                    className={`grid ${options.length === 4 ? 'grid-cols-1 sm:grid-cols-2' : options.length <= 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'} gap-3 sm:gap-4 w-full max-w-lg`}
                   >
                     {options.map((opt, idx) => {
                       const isSelected = selected === opt.id
@@ -1534,14 +1539,14 @@ export default function LessonPlayPage() {
                             if (answerState !== 'idle') return
                             setSelected(opt.id)
                           }}
-                          className={`p-3 sm:p-4 rounded-2xl border-2 font-black text-base sm:text-lg transition-colors flex flex-col items-center justify-between gap-2 text-center relative min-h-[72px] sm:min-h-[88px] ${
+                          className={`p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border-2 font-black text-base sm:text-lg transition-all flex flex-col items-center justify-between gap-2 text-center relative min-h-[76px] sm:min-h-[92px] shadow-sm cursor-pointer ${
                             showResult && opt.correct
-                              ? 'border-[#58cc02] bg-[#1a3328] border-b-4 border-b-[#46a302] text-[#4ade80]'
+                              ? 'border-emerald-500 bg-emerald-50 border-b-[5px] border-b-emerald-600 text-emerald-900 shadow-md ring-2 ring-emerald-300/40'
                               : showResult && !opt.correct
-                              ? 'border-[#ef4444] bg-[#37161b] border-b-4 border-b-[#b91c1c] text-[#fca5a5]'
+                              ? 'border-rose-400 bg-rose-50 border-b-[5px] border-b-rose-600 text-rose-900'
                               : isSelected
-                              ? 'border-[#58cc02] bg-[#1a3328] border-b-4 border-b-[#46a302] text-[#4ade80] shadow-md'
-                              : 'border-[#2e3e48] bg-[#18252d] hover:bg-[#202f37] hover:border-[#384c58] border-b-4 border-b-[#233139] text-white active:translate-y-1 active:border-b-2'
+                              ? 'border-sky-400 bg-sky-100/90 border-b-[5px] border-b-sky-600 text-sky-950 shadow-md ring-2 ring-sky-300/40'
+                              : 'border-slate-200 bg-white hover:bg-sky-50/60 hover:border-sky-300 border-b-[5px] border-b-slate-300 text-slate-800 active:translate-y-1 active:border-b-2'
                           }`}
                         >
                           <div className="flex-1 flex flex-col items-center justify-center gap-1.5 w-full">
@@ -1550,7 +1555,7 @@ export default function LessonPlayPage() {
                             )}
                             <span className="text-xl sm:text-2xl font-black">{opt.text}</span>
                           </div>
-                          <span className="w-5 h-5 rounded-md border border-slate-700 bg-black/20 flex items-center justify-center text-[10px] font-black text-slate-400 self-end">
+                          <span className="w-5 h-5 rounded-md border border-slate-200 bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 self-end">
                             {idx + 1}
                           </span>
                         </motion.button>
@@ -1621,13 +1626,13 @@ export default function LessonPlayPage() {
 
               return (
                 <div className="w-full flex flex-col items-center gap-2 sm:gap-2.5">
-                  {/* Duolingo Question Header */}
+                  {/* Question Header */}
                   <div className="text-center max-w-lg">
                     <motion.h2
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="text-xl sm:text-2xl font-black text-white leading-tight mb-1"
+                      className="text-2xl sm:text-3xl font-black text-[#0f4c5c] leading-tight mb-2"
                     >
                       {isQuestion ? String(c.prompt) : (targetNum !== null ? `Say the number ${targetNum} out loud` : `Say the word "${targetWord}" out loud`)}
                     </motion.h2>
@@ -1639,26 +1644,26 @@ export default function LessonPlayPage() {
                     initial={{ scale: 0.95, opacity: 0, y: 12 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     transition={{ type: 'spring', damping: 18 }}
-                    className="w-full max-w-md bg-[#18252d] rounded-2xl sm:rounded-3xl p-3 sm:p-4 border-2 border-[#2e3e48] border-b-4 border-b-[#233139] shadow-lg flex flex-col items-center text-center relative"
+                    className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border-2 border-slate-200 border-b-[5px] border-b-slate-300 shadow-sm flex flex-col items-center text-center relative"
                   >
                     {/* Hear Pip again pill button */}
                     <button
                       type="button"
                       onClick={() => speak(isQuestion ? `${String(c.prompt)} Say the answer out loud!` : (targetNum !== null ? `Say the number ${targetNum} out loud!` : `Say the word: ${targetWord}!`))}
-                      className="mb-1.5 px-3 py-1 bg-[#24333b] hover:bg-[#2c3d47] border-2 border-[#324550] border-b-4 border-b-[#1c2930] rounded-xl flex items-center gap-1.5 text-slate-200 font-black text-xs uppercase tracking-wider active:translate-y-0.5 cursor-pointer transition-all"
+                      className="mb-2 px-3.5 py-1.5 bg-sky-50 hover:bg-sky-100 border-2 border-sky-200 border-b-4 border-b-sky-300 rounded-xl flex items-center gap-1.5 text-sky-700 font-black text-xs uppercase tracking-wider active:translate-y-0.5 cursor-pointer transition-all shadow-2xs"
                     >
-                      <Volume2 size={15} className="text-[#58cc02]" />
+                      <Volume2 size={15} className="text-emerald-600" />
                       <span>Hear Pip Say It</span>
                     </button>
 
                     {equation ? (
                       <div className="flex flex-col items-center my-1 select-none">
-                        <div className="text-3xl sm:text-4xl font-black text-white tracking-wide">
+                        <div className="text-3xl sm:text-4xl font-black text-slate-800 tracking-wide">
                           {equation}
                         </div>
                       </div>
                     ) : targetNum !== null && !isQuestion ? (
-                      <span className="text-5xl sm:text-6xl font-black text-[#58cc02] leading-none mb-1 select-none">
+                      <span className="text-5xl sm:text-6xl font-black text-emerald-600 leading-none mb-1 select-none">
                         {targetNum}
                       </span>
                     ) : null}
@@ -1670,14 +1675,14 @@ export default function LessonPlayPage() {
                             <span key={idx}>{o}</span>
                           ))}
                         </div>
-                        <span className="text-lg sm:text-xl font-black text-[#58cc02]">+</span>
+                        <span className="text-lg sm:text-xl font-black text-emerald-600">+</span>
                         <div className="flex gap-1">
                           {rightObjects.map((o, idx) => (
                             <span key={idx}>{o}</span>
                           ))}
                         </div>
                         <span className="text-lg sm:text-xl font-black text-slate-400">=</span>
-                        <span className="text-2xl sm:text-3xl font-black text-amber-300">?</span>
+                        <span className="text-2xl sm:text-3xl font-black text-amber-500">?</span>
                       </div>
                     ) : img ? (
                       <ActivityImage path={img} alt={targetWord} size="md" />
@@ -1697,7 +1702,7 @@ export default function LessonPlayPage() {
                     ) : null}
 
                     {!isQuestion && (
-                      <div className="text-2xl sm:text-3xl font-black text-white mt-1">
+                      <div className="text-2xl sm:text-3xl font-black text-slate-800 mt-1">
                         &ldquo;{targetWord}&rdquo;
                       </div>
                     )}
@@ -1726,14 +1731,14 @@ export default function LessonPlayPage() {
                           <button
                             type="button"
                             onClick={() => setSpeakTapFallback(true)}
-                            className="mt-2 text-xs font-black text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                            className="mt-2 text-xs font-black text-slate-500 hover:text-slate-800 underline cursor-pointer"
                           >
                             Can&apos;t talk right now? Tap the answer instead
                           </button>
                         </>
                       ) : (
                         <div className="w-full flex flex-col items-center gap-2">
-                          <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                          <p className="text-xs font-black uppercase tracking-wider text-slate-500">
                             👉 Tap the matching number:
                           </p>
                           <div className="grid grid-cols-3 gap-2.5 w-full">
@@ -1750,7 +1755,7 @@ export default function LessonPlayPage() {
                                     handleWrong()
                                   }
                                 }}
-                                className="py-3 px-4 rounded-2xl border-2 border-[#2e3e48] border-b-4 border-b-[#233139] bg-[#18252d] hover:bg-[#202f37] text-white font-black text-xl active:translate-y-0.5"
+                                className="py-3 px-4 rounded-2xl border-2 border-slate-200 border-b-[5px] border-b-slate-300 bg-white hover:bg-sky-50 text-slate-800 font-black text-xl active:translate-y-0.5 shadow-sm"
                               >
                                 {opt}
                               </button>
@@ -1767,7 +1772,7 @@ export default function LessonPlayPage() {
             {/* 4. TYPE ANSWER ACTIVITY */}
             {act.type === 'type_answer' && (
               <div className="w-full flex flex-col items-center">
-                <h2 className="text-2xl sm:text-3xl font-black text-white text-center mb-6">
+                <h2 className="text-2xl sm:text-3xl font-black text-[#0f4c5c] text-center mb-6">
                   {(act.content as TypeAnswerContent).question}
                 </h2>
                 <input
@@ -1777,7 +1782,7 @@ export default function LessonPlayPage() {
                   onKeyDown={e => e.key === 'Enter' && handleTypeSubmit()}
                   disabled={answerState !== 'idle'}
                   placeholder="Type your answer here..."
-                  className="w-full max-w-lg bg-[#18252d] border-2 border-[#2e3e48] border-b-[5px] border-b-[#233139] focus:border-[#58cc02] focus:border-b-[#46a302] rounded-3xl px-6 py-4 text-white font-black text-2xl outline-none shadow-inner transition-all text-center"
+                  className="w-full max-w-lg bg-white border-2 border-slate-200 border-b-[5px] border-b-slate-300 focus:border-sky-400 focus:border-b-sky-600 rounded-3xl px-6 py-4 text-slate-800 font-black text-2xl outline-none shadow-sm transition-all text-center"
                   autoFocus
                 />
               </div>
@@ -1802,14 +1807,14 @@ export default function LessonPlayPage() {
         </AnimatePresence>
       </main>
 
-      {/* ── DUOLINGO FIXED BOTTOM ACTION BAR ─────────────────────── */}
+      {/* ── CLEAN SUNLIT BOTTOM ACTION BAR ─────────────────────── */}
       <footer
-        className={`fixed bottom-0 left-0 right-0 z-40 py-2.5 sm:py-3 px-4 sm:px-12 border-t-2 transition-colors duration-200 ${
+        className={`fixed bottom-0 left-0 right-0 z-40 py-3 sm:py-3.5 px-4 sm:px-12 border-t-2 backdrop-blur-md transition-colors duration-200 ${
           isCorrect
-            ? 'bg-[#132d20] border-[#235035]'
+            ? 'bg-emerald-50/95 border-emerald-200 shadow-[0_-4px_20px_rgba(16,185,129,0.1)]'
             : isWrong
-            ? 'bg-[#38161b] border-[#68232c]'
-            : 'bg-[#131f24] border-[#233139]'
+            ? 'bg-rose-50/95 border-rose-200 shadow-[0_-4px_20px_rgba(244,63,94,0.1)]'
+            : 'bg-white/95 border-sky-100 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]'
         }`}
       >
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
@@ -1818,24 +1823,24 @@ export default function LessonPlayPage() {
           <div className="flex items-center gap-3.5 min-w-0">
             {isCorrect && (
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-[#1e462b] flex items-center justify-center text-[#4ade80] text-2xl font-black shadow-xs flex-shrink-0 border border-[#2d6a42]">
-                  <Check size={26} strokeWidth={3.5} />
+                <div className="w-11 h-11 rounded-full bg-emerald-500 flex items-center justify-center text-white text-2xl font-black shadow-sm flex-shrink-0">
+                  <Check size={24} strokeWidth={3.5} />
                 </div>
                 <div>
-                  <p className="text-xl font-black text-[#4ade80] leading-none mb-0.5">Nicely done!</p>
-                  <p className="text-xs sm:text-sm font-extrabold text-emerald-300">+{xpEarned} XP • {feedbackLine}</p>
+                  <p className="text-xl font-black text-emerald-800 leading-none mb-0.5">Nicely done!</p>
+                  <p className="text-xs sm:text-sm font-extrabold text-emerald-600">+{xpEarned} XP • {feedbackLine}</p>
                 </div>
               </div>
             )}
 
             {isWrong && (
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-[#4a1d24] flex items-center justify-center text-[#f87171] text-2xl font-black shadow-xs flex-shrink-0 border border-[#6b2933]">
-                  <X size={26} strokeWidth={3.5} />
+                <div className="w-11 h-11 rounded-full bg-rose-500 flex items-center justify-center text-white text-2xl font-black shadow-sm flex-shrink-0">
+                  <X size={24} strokeWidth={3.5} />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-[#fca5a5] uppercase tracking-wider leading-none mb-1">Correct solution:</p>
-                  <p className="text-base sm:text-lg font-black text-white">
+                  <p className="text-xs font-black text-rose-600 uppercase tracking-wider leading-none mb-1">Correct solution:</p>
+                  <p className="text-base sm:text-lg font-black text-slate-800">
                     {(() => {
                       const c = act.content as unknown as Record<string, unknown>
                       if (act.type === 'tap_answer') {
@@ -1853,7 +1858,7 @@ export default function LessonPlayPage() {
                 {act.type === 'listen' ? (
                   <button
                     onClick={handleListenAgain}
-                    className="px-4 sm:px-6 py-3 rounded-2xl border-2 border-[#324550] border-b-4 border-b-[#1c2930] bg-[#24333b] hover:bg-[#2c3d47] text-slate-200 font-black text-xs sm:text-sm uppercase tracking-wider active:translate-y-0.5 flex items-center gap-2"
+                    className="px-4 sm:px-6 py-3 rounded-2xl border-2 border-sky-200 border-b-4 border-b-sky-300 bg-white hover:bg-sky-50 text-sky-700 font-black text-xs sm:text-sm uppercase tracking-wider active:translate-y-0.5 shadow-xs flex items-center gap-2"
                   >
                     <RotateCcw size={16} strokeWidth={2.5} />
                     <span>Listen Again</span>
@@ -1865,7 +1870,7 @@ export default function LessonPlayPage() {
                       resultRef.current = { passed: false, score: 30, wrongs: resultRef.current.wrongs + 1 }
                       handleNext()
                     }}
-                    className="px-4 sm:px-6 py-3 rounded-2xl border-2 border-[#324550] border-b-4 border-b-[#1c2930] bg-[#24333b] hover:bg-[#2c3d47] text-slate-300 font-black text-xs sm:text-sm uppercase tracking-wider active:translate-y-0.5"
+                    className="px-5 sm:px-7 py-3 rounded-2xl border-2 border-slate-200 border-b-4 border-b-slate-300 bg-white hover:bg-slate-50 text-slate-600 font-black text-xs sm:text-sm uppercase tracking-wider active:translate-y-0.5 shadow-xs"
                   >
                     Skip
                   </button>
@@ -1881,8 +1886,8 @@ export default function LessonPlayPage() {
                 onClick={handleNext}
                 className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider text-white shadow-sm transition-all active:translate-y-1 active:border-b-2 ${
                   isCorrect
-                    ? 'bg-[#58cc02] hover:bg-[#46a302] border-2 border-[#58cc02] border-b-4 border-b-[#46a302]'
-                    : 'bg-[#ef4444] hover:bg-[#dc2626] border-2 border-[#ef4444] border-b-4 border-b-[#b91c1c]'
+                    ? 'bg-emerald-500 hover:bg-emerald-600 border-2 border-emerald-500 border-b-4 border-b-emerald-700'
+                    : 'bg-rose-500 hover:bg-rose-600 border-2 border-rose-500 border-b-4 border-b-rose-700'
                 }`}
               >
                 Continue
@@ -1894,7 +1899,7 @@ export default function LessonPlayPage() {
                 className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider transition-all flex items-center gap-2 ${
                   listenCorrect
                     ? 'bg-[#58cc02] hover:bg-[#46a302] text-white border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-1 active:border-b-2 shadow-lg animate-pulse'
-                    : 'bg-[#2b3a42] text-[#556973] border-b-4 border-[#202d33] cursor-not-allowed'
+                    : 'bg-slate-200 text-slate-400 border-b-4 border-slate-300 cursor-not-allowed'
                 }`}
               >
                 <span>{listenCorrect ? 'Continue 👉' : 'Pick One Above'}</span>
@@ -1910,7 +1915,7 @@ export default function LessonPlayPage() {
                 className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider transition-all ${
                   canCheck
                     ? 'bg-[#58cc02] hover:bg-[#46a302] text-white border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-1 active:border-b-2 shadow-sm'
-                    : 'bg-[#2b3a42] text-[#556973] border-b-4 border-[#202d33] cursor-not-allowed'
+                    : 'bg-slate-200 text-slate-400 border-b-4 border-slate-300 cursor-not-allowed'
                 }`}
               >
                 Check
@@ -1922,7 +1927,7 @@ export default function LessonPlayPage() {
                 className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider transition-all ${
                   canCheck
                     ? 'bg-[#58cc02] hover:bg-[#46a302] text-white border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-1 active:border-b-2 shadow-sm'
-                    : 'bg-[#2b3a42] text-[#556973] border-b-4 border-[#202d33] cursor-not-allowed'
+                    : 'bg-slate-200 text-slate-400 border-b-4 border-slate-300 cursor-not-allowed'
                 }`}
               >
                 Check
@@ -1933,15 +1938,15 @@ export default function LessonPlayPage() {
         </div>
       </footer>
 
-      {/* ── DUOLINGO HEART MISTAKE MODAL (IMAGE 4) ───────────────── */}
+      {/* ── HEART MISTAKE MODAL ──────────────────────────────────── */}
       <AnimatePresence>
         {showHeartModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#1a232a] text-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center border-2 border-slate-700 shadow-2xl font-nunito"
+              className="bg-white text-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center border-2 border-slate-200 border-b-[6px] border-b-slate-300 shadow-2xl font-nunito"
             >
               {/* Hearts row: e.g. 4 red hearts, 1 gray heart */}
               <div className="flex items-center justify-center gap-2 mb-5">
@@ -1949,14 +1954,14 @@ export default function LessonPlayPage() {
                   <Heart
                     key={i}
                     size={26}
-                    fill={i < Math.max(0, lives) ? '#ef4444' : '#475569'}
-                    className={i < Math.max(0, lives) ? 'text-red-500' : 'text-slate-600'}
+                    fill={i < Math.max(0, lives) ? '#ef4444' : '#e2e8f0'}
+                    className={i < Math.max(0, lives) ? 'text-rose-500' : 'text-slate-300'}
                   />
                 ))}
               </div>
 
-              <h3 className="text-xl sm:text-2xl font-black mb-2 text-white">Each mistake costs 1 heart!</h3>
-              <p className="text-slate-300 font-bold text-xs sm:text-sm mb-6 leading-relaxed">
+              <h3 className="text-xl sm:text-2xl font-black mb-2 text-slate-800">Each mistake costs 1 heart!</h3>
+              <p className="text-slate-500 font-bold text-xs sm:text-sm mb-6 leading-relaxed">
                 Stay sharp and focused to keep your hearts. You got this!
               </p>
 
@@ -1974,28 +1979,28 @@ export default function LessonPlayPage() {
       {/* ── QUIT CONFIRMATION MODAL ──────────────────────────────── */}
       <AnimatePresence>
         {showQuitModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#18252d] text-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center border-2 border-[#2e3e48] border-b-[6px] border-b-[#233139] shadow-2xl font-nunito"
+              className="bg-white text-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center border-2 border-slate-200 border-b-[6px] border-b-slate-300 shadow-2xl font-nunito"
             >
               <Pip size="lg" mood="sad" animate="idle" className="mb-2" />
-              <h3 className="text-2xl font-black mb-2 text-white">Quit this lesson?</h3>
-              <p className="text-slate-300 font-bold text-xs sm:text-sm mb-6">
+              <h3 className="text-2xl font-black mb-2 text-slate-800">Quit this lesson?</h3>
+              <p className="text-slate-500 font-bold text-xs sm:text-sm mb-6 leading-relaxed">
                 All progress in this lesson will be lost if you leave now.
               </p>
               <div className="space-y-2.5">
                 <button
                   onClick={() => setShowQuitModal(false)}
-                  className="w-full py-3.5 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-sm uppercase tracking-wider rounded-2xl border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-0.5"
+                  className="w-full py-3.5 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-sm uppercase tracking-wider rounded-2xl border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-0.5 shadow-sm"
                 >
                   Keep Learning
                 </button>
                 <button
                   onClick={() => router.push(`/lessons/${id}`)}
-                  className="w-full py-3 text-slate-400 hover:text-rose-600 font-black text-xs uppercase tracking-wider"
+                  className="w-full py-3 text-slate-400 hover:text-rose-600 font-black text-xs uppercase tracking-wider transition-colors"
                 >
                   End Session
                 </button>

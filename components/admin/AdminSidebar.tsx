@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, BookOpen, Layers, Film, ChevronRight, ExternalLink, Sparkles, Shuffle, Activity, Users, Trophy, Target, GraduationCap, CreditCard, Image as ImageIcon } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Layers, Film, ChevronRight, ExternalLink, Sparkles, Shuffle, Activity, Users, Trophy, Target, GraduationCap, CreditCard, Image as ImageIcon, MessageSquareHeart, Lightbulb } from 'lucide-react'
 
 const NAV = [
   { href: '/admin',              icon: LayoutDashboard, label: 'Dashboard' },
@@ -16,6 +16,9 @@ const NAV = [
   { href: '/admin/billing',      icon: CreditCard,      label: 'Plans & Billing' },
   { href: '/admin/achievements', icon: Trophy,          label: 'Badges' },
   { href: '/admin/subjects',     icon: Layers,          label: 'Subjects' },
+  { href: '/admin/hero',         icon: Sparkles,        label: 'Hero & Showcase' },
+  { href: '/admin/testimonials', icon: MessageSquareHeart, label: 'Testimonials' },
+  { href: '/admin/facts',        icon: Lightbulb,       label: 'Wonder Facts' },
 ]
 
 export function AdminSidebar() {

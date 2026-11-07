@@ -549,7 +549,12 @@ export default function ParentHubPage() {
       avatar_seed: child.avatar_seed,
       created_at: (child as any).created_at || new Date().toISOString(),
       learning_profile: child.learning_profile,
-    })
+      xp: child.xp,
+      level: child.level,
+      streak: child.streak,
+      lives: child.lives,
+      max_lives: child.max_lives,
+    } as any)
     toast(`Switched to ${child.name}!`, 'success')
     setSwitching(null)
   }
@@ -565,7 +570,12 @@ export default function ParentHubPage() {
       avatar_seed: newChild.avatar_seed,
       created_at: (newChild as any).created_at || new Date().toISOString(),
       learning_profile: newChild.learning_profile,
-    })
+      xp: newChild.xp,
+      level: newChild.level,
+      streak: newChild.streak,
+      lives: newChild.lives,
+      max_lives: newChild.max_lives,
+    } as any)
     setShowAdd(false)
     toast(`${newChild.name}'s profile created!`, 'success')
     load()

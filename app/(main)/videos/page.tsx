@@ -8,7 +8,7 @@ import { useAppStore } from '@/store/useAppStore'
 import type { AgeGroup } from '@/types/child'
 import { Play, Sparkles } from 'lucide-react'
 import type { Subject } from '@/lib/api'
-import { ScallopRibbon } from '@/components/home/ScallopRibbon'
+import { AnimatedSun, DoodleCloud } from '@/components/home/KidsDoodles'
 
 function getAgeGroup(age: number): AgeGroup {
   if (age <= 5)  return '0-5'
@@ -47,35 +47,31 @@ export default function VideosPage() {
   )
 
   return (
-    <div className="w-full flex flex-col">
-      {/* ── Top Hero Header (Matching Landing Page) ───────────────── */}
-      <section className="bg-[#201c4d] text-white pt-8 pb-10 px-4 sm:px-6 relative overflow-hidden">
-        {/* Soft Purple Cloud Puffs */}
-        <div className="absolute top-4 left-10 w-32 h-16 bg-[#2e2968] rounded-full pointer-events-none opacity-80" />
-        <div className="absolute top-2 right-14 w-40 h-20 bg-[#2e2968] rounded-full pointer-events-none opacity-75 hidden sm:block" />
+    <div className="w-full flex flex-col bg-[#fffdf8] min-h-screen">
+      {/* ── Top Hero Header (WonderLearn Sky Blue Aesthetic) ────────── */}
+      <section className="bg-gradient-to-b from-[#e0f2fe] via-[#bae6fd]/35 to-[#fffdf8] text-slate-800 pt-8 pb-10 px-4 sm:px-6 relative overflow-hidden border-b border-sky-100">
+        <AnimatedSun className="absolute top-4 right-10 w-24 sm:w-32 z-0 pointer-events-none opacity-90 anim-spin-slow" />
+        <DoodleCloud className="absolute top-8 left-6 w-32 sm:w-44 z-0 pointer-events-none opacity-80 anim-float-h" delay={0} />
 
         <div className="max-w-7xl mx-auto relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 bg-[#171439]/90 border border-white/15 rounded-full px-4 py-1.5 text-xs font-black text-purple-200 shadow-sm">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#facc15] animate-pulse" />
+            <div className="inline-flex items-center gap-2 bg-white/95 border border-sky-200 rounded-full px-4 py-1.5 text-xs font-black text-[#0369a1] shadow-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Kids Cinema & Story Theater</span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-              Video <span className="text-[#facc15]">Stories</span> & Songs 🎬
+            <h1 className="text-3xl sm:text-5xl font-black text-[#0c4a6e] tracking-tight">
+              Video <span className="text-[#0284c7]">Stories</span> & Songs 🎬
             </h1>
-            <p className="text-purple-100 font-bold text-sm sm:text-base max-w-xl">
+            <p className="text-slate-600 font-bold text-sm sm:text-base max-w-xl">
               Engaging, age-appropriate educational videos woven into your child&apos;s learning adventures!
             </p>
           </div>
 
-          <div className="bg-[#171439]/90 border border-white/15 px-4 py-2 rounded-2xl text-xs font-black text-amber-300">
-            Ages {ageGroup} Curated
+          <div className="bg-white/95 border-2 border-amber-300 px-5 py-2.5 rounded-2xl text-xs font-black text-amber-800 shadow-md">
+            Ages {ageGroup} Curated ✨
           </div>
         </div>
       </section>
-
-      {/* Scallop Wave Transition into Warm Canvas */}
-      <ScallopRibbon topBg="#201c4d" bottomBg="#fffdf8" variant="scallop" />
 
       {/* Main Videos Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 w-full space-y-6">

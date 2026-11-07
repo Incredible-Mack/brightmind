@@ -75,6 +75,7 @@ export interface AdminSubject {
   description: string
   icon: string
   color: string
+  lesson_count?: number
 }
 
 export interface AdminStats {
@@ -319,8 +320,13 @@ export const adminApi = {
 
   subjects: {
     list: () => adminRequest<AdminSubject[]>('subjects'),
+    get: (id: number) => adminRequest<AdminSubject>(`subjects${qs({ id })}`),
     create: (data: Partial<AdminSubject>) =>
       adminRequest<{ id: number }>('subjects', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<AdminSubject>) =>
+      adminRequest<{ updated: boolean }>(`subjects${qs({ id })}`, { method: 'PUT', body: JSON.stringify(data) }),
+    remove: (id: number, force = false) =>
+      adminRequest<{ deleted: boolean }>(`subjects${qs({ id, force: force ? 1 : undefined })}`, { method: 'DELETE' }),
   },
 
   lessons: {
@@ -344,5 +350,36 @@ export const adminApi = {
       adminRequest<{ message: string }>(`activities${qs({ id })}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) =>
       adminRequest<{ message: string }>(`activities${qs({ id })}`, { method: 'DELETE' }),
+  },
+
+  hero: {
+    get: () => adminRequest<import('./api').HeroSettings>('hero'),
+    update: (data: Partial<import('./api').HeroSettings>) =>
+      adminRequest<{ updated: boolean }>('hero', { method: 'PUT', body: JSON.stringify(data) }),
+  },
+
+  testimonials: {
+    get: () => adminRequest<{ visible: boolean; items: import('./api').Testimonial[] }>('testimonials'),
+    toggleVisibility: (visible: boolean) =>
+      adminRequest<{ updated: boolean; visible: boolean }>('testimonials', { method: 'PUT', body: JSON.stringify({ action: 'toggle_visibility', visible }) }),
+    create: (data: Partial<import('./api').Testimonial>) =>
+      adminRequest<{ id: number; message: string }>('testimonials', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<import('./api').Testimonial>) =>
+      adminRequest<{ updated: boolean; message: string }>(`testimonials${qs({ id })}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) =>
+      adminRequest<{ deleted: boolean; message: string }>(`testimonials${qs({ id })}`, { method: 'DELETE' }),
+  },
+
+  facts: {
+    get: (id?: number) =>
+      adminRequest<{ visible: boolean; items: import('./api').WonderFact[] }>(id ? `facts${qs({ id })}` : 'facts'),
+    toggleVisibility: (visible: boolean) =>
+      adminRequest<{ updated: boolean; visible: boolean }>('facts', { method: 'PUT', body: JSON.stringify({ action: 'toggle_visibility', visible }) }),
+    create: (data: Partial<import('./api').WonderFact>) =>
+      adminRequest<{ id: number; message: string }>('facts', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<import('./api').WonderFact>) =>
+      adminRequest<{ updated: boolean; message: string }>(`facts${qs({ id })}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) =>
+      adminRequest<{ deleted: boolean; message: string }>(`facts${qs({ id })}`, { method: 'DELETE' }),
   },
 }

@@ -93,7 +93,68 @@ export const useAppStore = create<AppState>()(
 
       setPremium: (premium, until = null) => set(premium ? { premium: true, premiumUntil: until, lives: get().maxLives, livesRefillAt: null } : { premium: false, premiumUntil: null }),
       setUser: (user) => set({ user }),
-      setChild: (child) => set({ child }),
+      setChild: (child) => {
+        if (!child) {
+          set({ child: null })
+          return
+        }
+
+        // If the child object has XP, level, lives, streak, update state immediately
+        const raw = child as unknown as {
+          xp?: number | string
+          level?: number | string
+          streak?: number | string
+          lives?: number | string
+          max_lives?: number | string
+        }
+
+        const xp = raw.xp !== undefined ? Number(raw.xp) : 0
+        const { level, name } = getLevelFromXP(xp)
+        const streak = raw.streak !== undefined ? Number(raw.streak) : 0
+        const maxLives = raw.max_lives !== undefined ? Number(raw.max_lives) : 5
+        const lives = raw.lives !== undefined ? Number(raw.lives) : maxLives
+
+        set({
+          child,
+          xp,
+          level,
+          levelName: name,
+          streak,
+          lives,
+          maxLives,
+        })
+
+        // Fetch fresh profile and progress for this child from the server
+        const childId = Number(child.id)
+        if (childId) {
+          Promise.all([
+            api.profile.get(childId).catch(() => null),
+            api.progress.list(childId).catch(() => []),
+          ])
+            .then(([prof, progList]) => {
+              if (prof) {
+                get().hydrateProfile(prof)
+              }
+              if (Array.isArray(progList)) {
+                const compMap: Record<number, CompletedLessonData> = {}
+                progList.forEach(p => {
+                  if (p.status === 'completed') {
+                    compMap[Number(p.lesson_id)] = {
+                      lessonId: Number(p.lesson_id),
+                      score: p.score ?? 100,
+                      xpEarned: p.xp_earned ?? 20,
+                      completedAt: (p as unknown as { updated_at?: string; created_at?: string }).updated_at ||
+                        (p as unknown as { updated_at?: string; created_at?: string }).created_at ||
+                        new Date().toISOString(),
+                    }
+                  }
+                })
+                set({ completedLessons: compMap })
+              }
+            })
+            .catch(() => {})
+        }
+      },
 
       addXP: (amount) => {
         const newXP = get().xp + amount
@@ -212,7 +273,23 @@ export const useAppStore = create<AppState>()(
           keepRefill = null
         }
 
-        set({ xp, level, levelName: name, streak: Number(p.streak ?? 0), lives: resolvedLives, maxLives, livesRefillAt: keepRefill })
+        const currentChild = get().child
+        let updatedChild = currentChild
+        const profileAgeGroup = (p as unknown as { age_group?: string })?.age_group
+        if (currentChild && profileAgeGroup && (currentChild as unknown as { age_group?: string }).age_group !== profileAgeGroup) {
+          updatedChild = { ...currentChild, age_group: profileAgeGroup } as unknown as Child
+        }
+
+        set({
+          child: updatedChild,
+          xp,
+          level,
+          levelName: name,
+          streak: Number(p.streak ?? 0),
+          lives: resolvedLives,
+          maxLives,
+          livesRefillAt: keepRefill,
+        })
       },
 
       resetSession: () => set({ aiTierUsed: null }),

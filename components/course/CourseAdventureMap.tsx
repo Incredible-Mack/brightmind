@@ -2,11 +2,12 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, Lock, Play, Star, Gift, Trophy, Sparkles, X, Heart } from 'lucide-react'
+import { Check, Lock, Play, Star, Gift, Trophy, Sparkles, X, Heart, ArrowLeft, BookOpen } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { useLives } from '@/hooks/useLives'
 import { HeartsModal } from '@/components/gamification/HeartsModal'
 import type { Lesson } from '@/types/lesson'
+import type { Subject } from '@/lib/api'
 import {
   SpringDuckPond,
   SpringFarmBarn,
@@ -37,6 +38,8 @@ interface CourseAdventureMapProps {
   view?: 'course' | 'path' | 'all'
   onViewChange?: (v: 'course' | 'path' | 'all') => void
   hasPath?: boolean
+  currentSubject?: Subject | { id?: number; name: string; slug?: string; color?: string; icon?: string } | null
+  onBackToCourses?: () => void
 }
 
 interface MilestoneStation {
@@ -58,6 +61,8 @@ export function CourseAdventureMap({
   lessons,
   progressMap,
   onSelectLesson,
+  currentSubject,
+  onBackToCourses,
 }: CourseAdventureMapProps) {
   const router = useRouter()
   const { child, xp } = useAppStore()
@@ -230,7 +235,7 @@ export function CourseAdventureMap({
 
       {/* ── Side HUD Badges (Parchment Map & Quest Timer - Image 2) ─── */}
       <div className="absolute top-28 left-4 sm:left-8 z-30 hidden sm:block">
-        <MapIconButton onClick={() => router.push('/courses')} />
+        <MapIconButton onClick={onBackToCourses ?? (() => router.push('/lessons'))} />
       </div>
       <div className="absolute bottom-12 left-4 sm:left-8 z-30 hidden sm:block">
         <SideQuestBadge />
@@ -362,16 +367,36 @@ export function CourseAdventureMap({
       <header className="w-full max-w-4xl px-4 pt-6 pb-4 z-30">
         <div className="bg-white/95 backdrop-blur-md rounded-3xl p-3 sm:p-3.5 shadow-xl border-4 border-white flex flex-col md:flex-row items-center justify-between gap-3">
           
-          {/* Left: Child Profile Badge */}
-          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-            <div className="flex items-center gap-3">
+          {/* Left: Child Profile Badge & Back Button */}
+          <div className="flex items-center gap-2.5 sm:gap-3 w-full md:w-auto justify-between md:justify-start">
+            <div className="flex items-center gap-2.5">
+              {onBackToCourses && (
+                <button
+                  type="button"
+                  onClick={onBackToCourses}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-[#eff6ff] hover:bg-[#dbeafe] text-[#1e3a8a] border-2 border-[#bfdbfe] border-b-4 border-[#93c5fd] font-black font-nunito text-xs active:translate-y-0.5 transition-all cursor-pointer shadow-sm flex-shrink-0"
+                  title="Back to Course Categories"
+                >
+                  <ArrowLeft size={15} className="text-[#2563eb]" />
+                  <span className="hidden sm:inline">All Courses</span>
+                  <span className="sm:hidden">Courses</span>
+                </button>
+              )}
               <div className="w-11 h-11 rounded-2xl bg-[#ec4899] border-2 border-white shadow-sm flex items-center justify-center text-2xl flex-shrink-0">
                 {child?.avatar_seed === 'bear' ? '🐻' : child?.avatar_seed === 'cat' ? '🐱' : '👧'}
               </div>
               <div>
-                <h3 className="text-sm font-black text-[#1d2445] font-nunito leading-tight">
-                  Hi, {child?.name || 'Explorer'}!
-                </h3>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-black text-[#1d2445] font-nunito leading-tight">
+                    Hi, {child?.name || 'Explorer'}!
+                  </h3>
+                  {currentSubject && (
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-100 text-purple-900 font-extrabold text-[10px]">
+                      <span>{currentSubject.icon || '📚'}</span>
+                      <span>{currentSubject.name}</span>
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="flex items-center gap-1 bg-amber-100 border border-amber-300 rounded-full px-2.5 py-0.5 text-[10px] font-black text-amber-900">
                     <Trophy size={11} className="text-amber-600" />
@@ -474,7 +499,23 @@ export function CourseAdventureMap({
       {/* ── 3D Coin Podiums Along the S-Curve (Image 2) ─────────────── */}
       {/* Placed with generous top padding so Station 1 and Pip have clear breathing space */}
       <main className="relative z-20 w-full max-w-4xl px-4 pt-16 pb-24 space-y-24 sm:space-y-28">
-        {stations.map((station, idx) => {
+        {stations.length === 0 ? (
+          <div className="bg-white/95 backdrop-blur-md rounded-3xl p-8 max-w-md mx-auto text-center border-4 border-white shadow-xl space-y-4">
+            <span className="text-5xl">🚀</span>
+            <h3 className="text-xl font-black text-[#1d2445] font-nunito">New Adventures Coming Soon!</h3>
+            <p className="text-slate-600 font-bold text-sm">Pip is preparing wonderful new lessons for this course.</p>
+            {onBackToCourses && (
+              <button
+                type="button"
+                onClick={onBackToCourses}
+                className="px-6 py-2.5 rounded-2xl bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-sm border-2 border-white border-b-4 border-[#3b8702] shadow-md transition-transform active:scale-95 cursor-pointer"
+              >
+                Choose Another Course
+              </button>
+            )}
+          </div>
+        ) : (
+          stations.map((station, idx) => {
           const alignClass = curveAlignments[idx % curveAlignments.length]
           const isCompleted = station.status === 'completed'
           const isActive = station.status === 'active'
@@ -612,7 +653,7 @@ export function CourseAdventureMap({
               </div>
             </div>
           )
-        })}
+        }))}
       </main>
 
       {/* ── Interactive Mystery Gift Modal ───────────────────────────── */}

@@ -198,9 +198,69 @@ export const api = {
       return request<Achievement[]>(`api/achievements${qs}`, {}, !!childId)
     },
   },
+
+  // ── Hero & Showcase Configuration ─────────────────────
+  hero: {
+    get: () => request<HeroSettings>('hero', {}, false),
+  },
+
+  // ── Testimonials ──────────────────────────────────────
+  testimonials: {
+    get: () => request<{ visible: boolean; items: Testimonial[] }>('testimonials', {}, false),
+  },
+
+  // ── Wonder Facts ──────────────────────────────────────
+  facts: {
+    get: (subjectSlug?: string) =>
+      request<{ visible: boolean; items: WonderFact[] }>(`facts${subjectSlug ? `?subject=${encodeURIComponent(subjectSlug)}` : ''}`, {}, false),
+  },
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────
+export interface HeroSettings {
+  hero_badge?: string
+  hero_title?: string
+  hero_subtitle?: string
+  hero_image?: string
+  hero_video?: string
+  hero_cta_text?: string
+  hero_trust_1?: string
+  hero_trust_2?: string
+  hero_trust_3?: string
+  hero_sticker_title?: string
+  hero_sticker_sub?: string
+  hero_bg_color?: string
+}
+
+export interface Testimonial {
+  id: number
+  name: string
+  role: string
+  avatar: string
+  avatar_bg: string
+  quote: string
+  rating: number
+  order_index: number
+  is_active: boolean
+  created_at?: string
+}
+
+export interface WonderFact {
+  id: number
+  subject_slug: string
+  badge: string
+  title: string
+  fact: string
+  detail: string
+  illustration: 'brain' | 'heart' | 'bones' | 'stardust' | 'dolphins' | 'books' | string
+  accent_color: string
+  bg_gradient: string
+  border_color: string
+  order_index: number
+  is_active: boolean
+  created_at?: string
+}
+
 export interface User {
   id: number
   email: string
