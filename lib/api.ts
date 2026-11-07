@@ -75,7 +75,7 @@ export const api = {
       const q = new URLSearchParams()
       if (params?.subject_id) q.set('subject_id', String(params.subject_id))
       if (params?.age_group)  q.set('age_group', params.age_group)
-      if (params?.limit)      q.set('limit', String(params.limit))
+      q.set('limit', String(params?.limit ?? 300))
       const qs = q.toString()
       return request<Lesson[]>(`api/lessons${qs ? '?' + qs : ''}`, {}, false)
     },

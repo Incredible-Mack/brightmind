@@ -79,6 +79,8 @@ interface TeachingData {
   sum?: number
   leftObjects?: string[]
   rightObjects?: string[]
+  isStoryCard?: boolean
+  hasOptions?: boolean
 }
 
 function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
@@ -140,6 +142,8 @@ function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
       sum,
       leftObjects,
       rightObjects,
+      hasOptions: true,
+      isStoryCard: false,
     }
   }
 
@@ -159,6 +163,8 @@ function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
         { id: '2', text: '2', correct: false },
         { id: '3', text: '3', correct: false },
       ],
+      hasOptions: true,
+      isStoryCard: false,
     }
   }
 
@@ -178,6 +184,8 @@ function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
         { id: '2', text: '2', correct: true },
         { id: '3', text: '3', correct: false },
       ],
+      hasOptions: true,
+      isStoryCard: false,
     }
   }
 
@@ -197,10 +205,12 @@ function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
         { id: '2', text: '2', correct: false },
         { id: '3', text: '3', correct: true },
       ],
+      hasOptions: true,
+      isStoryCard: false,
     }
   }
 
-  if (num !== null) {
+  if (num !== null && !isNaN(num)) {
     const numWord = word || String(num)
     const targetStr = String(num)
     const optTexts = [String(Math.max(1, num - 1)), String(num), String(num + 1)]
@@ -215,6 +225,8 @@ function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
       identifyPrompt: `Now, identify ${numWord} from the list below!`,
       target: targetStr,
       options: optTexts.map(t => ({ id: t, text: t, correct: t === targetStr })),
+      hasOptions: true,
+      isStoryCard: false,
     }
   }
 
@@ -235,25 +247,55 @@ function parseTeachingPhrases(c: Record<string, unknown>): TeachingData {
       identifyPrompt: `Identify ${letUpper} from the list below!`,
       target: targetStr,
       options: pool.map(t => ({ id: t, text: t, correct: t === targetStr })),
+      hasOptions: true,
+      isStoryCard: false,
     }
   }
 
-  const hint = String(c.audio_hint ?? c.prompt ?? c.text ?? 'Listen carefully!')
-  const targetStr = String(c.correct ?? c.expected ?? c.answer ?? (word || '1'))
-  const def = String(c.definition ?? 'A key learning concept')
-  const ex = String(c.example ?? hint)
-  const actP = String(c.actionPrompt ?? 'Listen carefully!')
+  // 4. Activity with explicit options array in content
+  const rawOpts = Array.isArray(c.options) && c.options.length > 0 ? (c.options as unknown[]) : null
+  const targetStr = String(c.correct ?? c.expected ?? c.answer ?? word ?? '').trim()
+
+  if (rawOpts) {
+    const hint = String(c.audio_hint ?? c.prompt ?? c.text ?? 'Listen carefully!')
+    const def = c.definition ? String(c.definition) : ''
+    const ex = c.example ? String(c.example) : hint
+    const actP = c.actionPrompt ? String(c.actionPrompt) : ''
+    const normalized = normalizeTapOptions({ options: rawOpts, correct: targetStr || String(rawOpts[0]) })
+    return {
+      intro: hint,
+      reveal: targetStr ? `This is ${targetStr}!` : hint,
+      phrase1: def ? `${hint} ${def}.` : hint,
+      definition: def,
+      example: ex,
+      actionPrompt: actP,
+      phrase2: actP ? `${ex} ${actP}` : ex,
+      identifyPrompt: targetStr ? `Find ${targetStr} below!` : 'Tap the correct answer below!',
+      target: targetStr,
+      options: normalized,
+      hasOptions: true,
+      isStoryCard: false,
+    }
+  }
+
+  // 5. Concept / Narrative / Story slide (Colours, Science, Art, Life Skills, etc.)
+  const textPrompt = String(c.prompt ?? c.text ?? c.audio_hint ?? 'Listen carefully!')
+  const def = c.definition ? String(c.definition) : ''
+  const ex = c.example ? String(c.example) : ''
+  const actP = c.actionPrompt ? String(c.actionPrompt) : ''
   return {
-    intro: hint,
-    reveal: `This is ${targetStr}!`,
-    phrase1: `${hint} ${def}. This is ${targetStr}!`,
+    intro: textPrompt,
+    reveal: targetStr ? `This is ${targetStr}!` : '',
+    phrase1: textPrompt,
     definition: def,
     example: ex,
     actionPrompt: actP,
-    phrase2: `${ex} ${actP}`,
-    identifyPrompt: `Identify ${targetStr} from the list below!`,
+    phrase2: actP ? `${textPrompt} ${actP}` : textPrompt,
+    identifyPrompt: '',
     target: targetStr,
-    options: [targetStr, '2', '3'].map(t => ({ id: t, text: t, correct: t === targetStr })),
+    options: [],
+    hasOptions: false,
+    isStoryCard: true,
   }
 }
 
@@ -452,14 +494,25 @@ export default function LessonPlayPage() {
     if (act.type === 'listen') {
       const teach = parseTeachingPhrases(c)
       setListenTeachData(teach)
-      setListenPhase('phrase1')
       setListenSelection(null)
-      setListenCorrect(false)
-      setListenDone(false)
       setHighlightNumber(false)
       setSayState('idle')
       setPipMood('happy')
       setPipAnim('idle')
+
+      if (teach.isStoryCard) {
+        setListenPhase('completed')
+        setListenCorrect(true)
+        setListenDone(true)
+        const line = teach.intro || teach.phrase1 || String(c.prompt ?? c.text ?? '')
+        setSpeech(line)
+        await speak(line)
+        return
+      }
+
+      setListenPhase('phrase1')
+      setListenCorrect(false)
+      setListenDone(false)
 
       // Step 1a: Voice introduces concept & definition
       setSpeech(teach.intro)
@@ -814,16 +867,30 @@ export default function LessonPlayPage() {
 
   const handleListenAgain = useCallback(() => {
     if (!currentActivity) return
+    const c = currentActivity.content as unknown as Record<string, unknown>
+    const teach = listenTeachData ?? parseTeachingPhrases(c ?? {})
+    if (teach.isStoryCard) {
+      speak(teach.intro || teach.phrase1 || String(c?.prompt ?? c?.text ?? ''))
+      return
+    }
     setListenSelection(null)
     setListenCorrect(false)
     narrate(currentActivity, true)
-  }, [currentActivity, narrate])
+  }, [currentActivity, listenTeachData, narrate, speak])
 
   const handleListenContinue = () => {
     if (!currentActivity || advancingRef.current) return
+    const c = currentActivity.content as unknown as Record<string, unknown>
+    const teach = listenTeachData ?? parseTeachingPhrases(c ?? {})
     const full = getXP(currentActivity)
-    if (sayState === 'passed') award(currentActivity, sayVia === 'tap' ? Math.max(1, Math.round(full * 0.7)) : full)
-    else award(currentActivity, Math.floor(full * 0.5))
+    if (teach.isStoryCard) {
+      award(currentActivity, full)
+      resultRef.current = { passed: true, score: 100, wrongs: 0 }
+    } else if (sayState === 'passed') {
+      award(currentActivity, sayVia === 'tap' ? Math.max(1, Math.round(full * 0.7)) : full)
+    } else {
+      award(currentActivity, Math.floor(full * 0.5))
+    }
     setListenDone(false)
     setListenPhase('phrase1')
     setListenSelection(null)
@@ -1182,6 +1249,77 @@ export default function LessonPlayPage() {
               const img = activityImage(c)
               const objects = c.objects as string[] | undefined
 
+              if (teach.isStoryCard) {
+                return (
+                  <div className="w-full flex flex-col items-center gap-3">
+                    <motion.div
+                      key="story-concept-card"
+                      initial={{ scale: 0.95, opacity: 0, y: 12 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+                      className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border-2 border-slate-200 border-b-[5px] border-b-slate-300 shadow-sm flex flex-col items-center text-center relative"
+                    >
+                      {teach.definition && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-extrabold text-[11px] sm:text-xs mb-2 shadow-2xs">
+                          <span>💡</span>
+                          <span>{teach.definition}</span>
+                        </div>
+                      )}
+
+                      {img ? (
+                        <div className="my-2 p-2 bg-sky-50/70 rounded-2xl border border-sky-100 max-w-[260px]">
+                          <ActivityImage path={img} alt={teach.target || 'lesson illustration'} size="md" />
+                        </div>
+                      ) : objects && objects.length > 0 ? (
+                        <div className="flex flex-wrap gap-2.5 justify-center text-3xl sm:text-4xl my-2">
+                          {objects.map((o, idx) => (
+                            <span key={idx} className="hover:scale-110 transition-transform select-none">
+                              {o}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-sky-400 to-indigo-400 text-white flex items-center justify-center text-3xl shadow-md my-2">
+                          🎨
+                        </div>
+                      )}
+
+                      {teach.target && (
+                        <h3 className="text-xl sm:text-2xl font-black text-slate-800 capitalize my-1">
+                          {teach.target}
+                        </h3>
+                      )}
+
+                      <p className="text-base sm:text-lg font-bold text-slate-700 leading-relaxed my-2">
+                        {teach.intro}
+                      </p>
+
+                      {teach.example && teach.example !== teach.intro && (
+                        <div className="mt-2 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 font-bold text-xs sm:text-sm">
+                          {teach.example}
+                        </div>
+                      )}
+
+                      {teach.actionPrompt && (
+                        <div className="mt-2 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-xl font-black text-xs sm:text-sm">
+                          <span>👉</span>
+                          <span>{teach.actionPrompt}</span>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => speak(teach.intro)}
+                        className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-sky-100 hover:bg-sky-200 text-sky-800 font-black text-xs transition-colors cursor-pointer"
+                      >
+                        <Volume2 size={14} />
+                        <span>Hear Again</span>
+                      </button>
+                    </motion.div>
+                  </div>
+                )
+              }
+
               return (
                 <div className="w-full flex flex-col items-center gap-2 sm:gap-2.5">
                   {/* Section 1: Clean Hero Visual Card (Fits Screen Geometry) */}
@@ -1412,7 +1550,7 @@ export default function LessonPlayPage() {
 
                   {/* Section 3: 3 Identification Options */}
                   <AnimatePresence>
-                    {(listenPhase === 'identify' || listenPhase === 'completed') && (
+                    {(listenPhase === 'identify' || listenPhase === 'completed') && teach.options.length > 0 && (
                       <motion.div
                         key="identify-options-list"
                         initial={{ opacity: 0, y: 18, scale: 0.95 }}
@@ -1894,15 +2032,15 @@ export default function LessonPlayPage() {
               </button>
             ) : act.type === 'listen' ? (
               <button
-                disabled={!listenCorrect}
+                disabled={!listenTeachData?.isStoryCard && !listenCorrect}
                 onClick={handleListenContinue}
-                className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider transition-all flex items-center gap-2 ${
-                  listenCorrect
+                className={`px-8 sm:px-12 py-3.5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+                  (listenTeachData?.isStoryCard || listenCorrect)
                     ? 'bg-[#58cc02] hover:bg-[#46a302] text-white border-2 border-[#58cc02] border-b-4 border-b-[#46a302] active:translate-y-1 active:border-b-2 shadow-lg animate-pulse'
                     : 'bg-slate-200 text-slate-400 border-b-4 border-slate-300 cursor-not-allowed'
                 }`}
               >
-                <span>{listenCorrect ? 'Continue 👉' : 'Pick One Above'}</span>
+                <span>{(listenTeachData?.isStoryCard || listenCorrect) ? 'Continue 👉' : 'Pick One Above'}</span>
               </button>
             ) : act.type === 'tap_answer' ? (
               <button
