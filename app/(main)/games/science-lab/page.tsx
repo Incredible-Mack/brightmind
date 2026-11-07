@@ -99,7 +99,6 @@ function prepareExperiment(raw: RawExperiment): Experiment {
 }
 
 const QUESTIONS_PER_ROUND = 8
-const TIMER_SECONDS = 15
 
 // ─── Swatch Color Map ──────────────────────────────────────────────────────
 
@@ -320,9 +319,6 @@ export default function ScienceLabPage() {
   const [step, setStep] = useState<Step>('predict')
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [selectionWarning, setSelectionWarning] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS)
-
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Build shuffled queue on round start
   const buildQueue = useCallback(() => {
@@ -336,47 +332,11 @@ export default function ScienceLabPage() {
 
   const experiment = queue[qIndex] ?? null
 
-  // ── Timer for Advanced Ages ──
-  useEffect(() => {
-    if (!isAdvanced || step !== 'predict' || !experiment) return
-    setTimeLeft(TIMER_SECONDS)
-
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!)
-          // Timeout: auto-mix without answer
-          handleExecuteMix(true)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(timerRef.current!)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, qIndex, roundKey, isAdvanced, experiment])
-
-  // ── Handle Option Selection ──
-  function handleSelectOption(idx: number) {
+  // ── Trigger Mix with selected option ──
+  function triggerMixWithOption(optIdx: number) {
     if (step !== 'predict') return
-    setSelectedOption(idx)
+    setSelectedOption(optIdx)
     setSelectionWarning(false)
-    playGameSound('flip')
-  }
-
-  // ── Execute Mix ──
-  function handleExecuteMix(forcedTimeout = false) {
-    if (step !== 'predict') return
-
-    if (selectedOption === null && !forcedTimeout) {
-      setSelectionWarning(true)
-      playGameSound('wrong')
-      return
-    }
-
-    if (timerRef.current) clearInterval(timerRef.current)
-
     setStep('mixing')
     playGameSound('flip')
 
@@ -384,7 +344,7 @@ export default function ScienceLabPage() {
     setTimeout(() => {
       setStep('revealed')
 
-      const isCorrect = selectedOption === experiment?.correctIndex
+      const isCorrect = optIdx === experiment?.correctIndex
 
       if (isCorrect) {
         playGameSound('correct')
@@ -399,7 +359,33 @@ export default function ScienceLabPage() {
     }, 1400)
   }
 
-  // ── Next Question ──
+  // ── Handle Option Selection (Directly triggers mix so child doesn't miss it) ──
+  function handleSelectOption(idx: number) {
+    if (step !== 'predict') return
+    setSelectedOption(idx)
+    setSelectionWarning(false)
+    playGameSound('flip')
+
+    // Start mixing automatically after a brief 200ms visual tap feedback
+    setTimeout(() => {
+      triggerMixWithOption(idx)
+    }, 200)
+  }
+
+  // ── Execute Mix button fallback ──
+  function handleExecuteMix() {
+    if (step !== 'predict') return
+
+    if (selectedOption === null) {
+      setSelectionWarning(true)
+      playGameSound('wrong')
+      return
+    }
+
+    triggerMixWithOption(selectedOption)
+  }
+
+  // ── Next Question (Never auto-advances, waits for user to tap) ──
   function handleNextQuestion() {
     const nextIdx = qIndex + 1
     if (nextIdx >= QUESTIONS_PER_ROUND) {
@@ -464,7 +450,7 @@ export default function ScienceLabPage() {
       </GamePromptCloud>
 
       {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
-      <GameMascotHill speech="Predict the reaction!" />
+      <GameMascotHill speech="Tap a colour to mix!" />
 
       {/* ── Main Experiment Bench (Meadow Stage) ─────────────────────────── */}
       <div className="w-full max-w-md bg-white/95 backdrop-blur-xs rounded-3xl border-2 border-white shadow-lg p-4 sm:p-5 flex flex-col gap-3 my-2 z-20">
@@ -535,7 +521,7 @@ export default function ScienceLabPage() {
           <div className="flex flex-col items-center gap-2 mt-1">
             <motion.button
               type="button"
-              onClick={() => handleExecuteMix(false)}
+              onClick={handleExecuteMix}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.96 }}
               className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-black text-sm sm:text-base border-2 border-amber-300 border-b-[5px] border-b-amber-700 shadow-md cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5"

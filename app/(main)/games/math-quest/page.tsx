@@ -230,7 +230,7 @@ export default function MathQuestPage() {
             setQuestionIndex(nextIdx)
             nextQuestion()
           }
-        }, 900)
+        }, 1300)
       } else {
         setComboStreak(0)
         setWrongOption(option)
@@ -250,7 +250,7 @@ export default function MathQuestPage() {
             setQuestionIndex(nextIdx)
             nextQuestion()
           }
-        }, 1100)
+        }, 1500)
       }
     },
     [phase, question.answer, comboStreak, addXP, loseLive, questionIndex, nextQuestion],

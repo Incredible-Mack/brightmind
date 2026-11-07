@@ -204,7 +204,7 @@ function buildBalloons(question: Question, ageGroup: AgeGroup, count: number): B
     label,
     color: colors[i % colors.length],
     x: 10 + (i / (labels.length - 1 || 1)) * 80,
-    duration: 6 + Math.random() * 3,
+    duration: 14 + Math.random() * 4,
     delay: Math.random() * 1.5,
     isCorrect: label === question.correctLabel,
     popped: false,
@@ -348,14 +348,14 @@ export default function BalloonPopPage() {
         if (xpToastTimer.current) clearTimeout(xpToastTimer.current)
         xpToastTimer.current = setTimeout(() => setShowXPToast(false), 1200)
 
-        setTimeout(advanceQuestion, 900)
+        setTimeout(advanceQuestion, 1400)
       } else {
         // ── Wrong ──
         playGameSound('wrong')
         loseLive()
         setWrongFlash(true)
-        setTimeout(() => setWrongFlash(false), 600)
-        setTimeout(advanceQuestion, 1000)
+        setTimeout(() => setWrongFlash(false), 800)
+        setTimeout(advanceQuestion, 1500)
       }
     },
     [lockedOut, addXP, loseLive, advanceQuestion]

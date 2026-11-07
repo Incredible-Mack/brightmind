@@ -62,10 +62,10 @@ interface AgeConfig {
 }
 
 const AGE_CONFIGS: Record<AgeGroup, AgeConfig> = {
-  '0-5':  { shapeCount: 4, distractors: 0, hasTimer: false, timerSeconds: 0,  label: '4 shapes' },
-  '6-8':  { shapeCount: 5, distractors: 0, hasTimer: false, timerSeconds: 0,  label: '5 shapes' },
-  '9-11': { shapeCount: 6, distractors: 0, hasTimer: true,  timerSeconds: 20, label: '6 shapes · 20s' },
-  '12-14':{ shapeCount: 6, distractors: 2, hasTimer: true,  timerSeconds: 15, label: '6 shapes + distractors · 15s' },
+  '0-5':  { shapeCount: 4, distractors: 0, hasTimer: false, timerSeconds: 0, label: '4 shapes' },
+  '6-8':  { shapeCount: 5, distractors: 0, hasTimer: false, timerSeconds: 0, label: '5 shapes' },
+  '9-11': { shapeCount: 6, distractors: 0, hasTimer: false, timerSeconds: 0, label: '6 shapes' },
+  '12-14':{ shapeCount: 6, distractors: 2, hasTimer: false, timerSeconds: 0, label: '6 shapes + distractors' },
 }
 
 /* ─── Utility helpers ────────────────────────────────────────────────────── */

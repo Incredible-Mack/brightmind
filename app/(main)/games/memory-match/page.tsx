@@ -130,7 +130,7 @@ export default function MemoryMatchPage() {
     (child as unknown as { age_group?: AgeGroup })?.age_group ||
     (child?.age ? getAgeGroup(child.age) : '0-5')
 
-  const initialDuration = ageGroup === '9-11' || ageGroup === '12-14' ? 5 : 4
+  const initialDuration = 12
 
   /* ── State ── */
   const [deck, setDeck] = useState<Card[]>(() => buildDeck(ageGroup, true))
@@ -284,7 +284,7 @@ export default function MemoryMatchPage() {
             )
           )
           setLockBoard(false)
-        }, 900)
+        }, 1200)
       }
 
       return []
