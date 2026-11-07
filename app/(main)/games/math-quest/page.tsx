@@ -240,23 +240,31 @@ export default function MathQuestPage() {
         setPhase('wrong')
         loseLive()
         playGameSound('wrong')
-
-        // Briefly flash wrong, then advance
-        setTimeout(() => {
-          const nextIdx = questionIndex + 1
-          if (nextIdx >= TOTAL_QUESTIONS) {
-            setPhase('result')
-            setShowResult(true)
-            playGameSound('complete')
-          } else {
-            setQuestionIndex(nextIdx)
-            nextQuestion()
-          }
-        }, 1500)
       }
     },
     [phase, question.answer, comboStreak, addXP, loseLive, questionIndex, nextQuestion],
   )
+
+  /* ── Retry / Skip on wrong answer ── */
+  const handleRetryQuestion = useCallback(() => {
+    setWrongOption(null)
+    setSelectedOption(null)
+    setKnightHit(false)
+    setPhase('idle')
+    playGameSound('flip')
+  }, [])
+
+  const handleSkipQuestion = useCallback(() => {
+    const nextIdx = questionIndex + 1
+    if (nextIdx >= TOTAL_QUESTIONS) {
+      setPhase('result')
+      setShowResult(true)
+      playGameSound('complete')
+    } else {
+      setQuestionIndex(nextIdx)
+      nextQuestion()
+    }
+  }, [questionIndex, nextQuestion])
 
   /* ── Next round / exit ── */
   const handleNextRound = useCallback(() => {
@@ -401,7 +409,15 @@ export default function MathQuestPage() {
       </GamePromptCloud>
 
       {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
-      <GameMascotHill speech="Choose the right answer!" />
+      <GameMascotHill
+        speech={
+          phase === 'correct'
+            ? 'Awesome job! 🌟'
+            : phase === 'wrong'
+            ? 'Almost! Tap Try Again! 🔄'
+            : 'Choose the right answer!'
+        }
+      />
 
       {/* ── 3D Pill Answer Buttons (Meadow Stage) ─────────────────────────── */}
       <div className="w-full max-w-md grid grid-cols-2 gap-3 sm:gap-4 my-2 z-20">
@@ -430,6 +446,30 @@ export default function MathQuestPage() {
           )
         })}
       </div>
+
+      {/* ── Try Again Action Buttons when Wrong ────────────────────────────── */}
+      {phase === 'wrong' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md flex items-center gap-2 pt-2 z-20 pb-4"
+        >
+          <button
+            type="button"
+            onClick={handleRetryQuestion}
+            className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-black text-sm sm:text-base border-2 border-amber-300 border-b-[5px] border-b-amber-700 shadow-lg cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5 transition-all"
+          >
+            <span>Try Again! 🔄</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleSkipQuestion}
+            className="py-3.5 px-4 rounded-2xl bg-white/95 hover:bg-white text-slate-700 font-black text-sm border-2 border-white border-b-[4px] border-b-slate-300 shadow-md cursor-pointer flex items-center justify-center gap-1 active:translate-y-0.5 transition-all"
+          >
+            <span>Skip ➡️</span>
+          </button>
+        </motion.div>
+      )}
 
       {/* ── Feedback Banner ───────────────────────────────────────────────── */}
       <div className="w-full max-w-md h-9 flex items-center justify-center z-20 mt-1">

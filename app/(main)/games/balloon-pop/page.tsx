@@ -355,10 +355,11 @@ export default function BalloonPopPage() {
         loseLive()
         setWrongFlash(true)
         setTimeout(() => setWrongFlash(false), 800)
-        setTimeout(advanceQuestion, 1500)
+        // Unlock so child can try again with the other balloons
+        setTimeout(() => setLockedOut(false), 600)
       }
     },
-    [lockedOut, addXP, loseLive, advanceQuestion]
+    [lockedOut, addXP, loseLive]
   )
 
   const handleHearAgain = useCallback(() => {
@@ -450,7 +451,13 @@ export default function BalloonPopPage() {
       </GamePromptCloud>
 
       {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
-      <GameMascotHill speech="Pop the right balloon! 🎈" />
+      <GameMascotHill
+        speech={
+          wrongFlash
+            ? 'Almost! Try another balloon! 🎈'
+            : 'Pop the right balloon! 🎈'
+        }
+      />
 
       {/* ── Balloon Floating Meadow Sky Stage ─────────────────────────────── */}
       <div

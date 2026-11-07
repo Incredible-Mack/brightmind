@@ -277,11 +277,6 @@ export default function PuzzleQuestPage() {
       if (firstTry) setFirstTry(false)
       setShowAnswer(true)
       setPhase('reveal')
-      setTimeout(() => {
-        setShowAnswer(false)
-        // reset tiles so player can retry
-        initRound(roundIdx)
-      }, 2500)
     }
   }
 
@@ -372,7 +367,15 @@ export default function PuzzleQuestPage() {
       </GamePromptCloud>
 
       {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
-      <GameMascotHill speech="Place shapes in order!" />
+      <GameMascotHill
+        speech={
+          phase === 'checking'
+            ? 'Super pattern master! 🎉'
+            : phase === 'reveal'
+            ? 'Almost! Tap Try Again! 🔄'
+            : 'Place shapes in order!'
+        }
+      />
 
       {/* ── Meadow Stage: Answer Slots Tray ──────────────────────────────── */}
       <div className="w-full max-w-md bg-white/90 backdrop-blur-xs rounded-3xl border-2 border-white shadow-lg p-4 sm:p-5 flex flex-col gap-4 my-2 z-20">
@@ -466,20 +469,46 @@ export default function PuzzleQuestPage() {
         </div>
 
         {/* ── Check Button (3D Emerald Pill) ── */}
-        <motion.button
-          type="button"
-          onClick={handleCheck}
-          disabled={!allFilled || phase !== 'playing'}
-          whileTap={allFilled ? { scale: 0.96 } : {}}
-          className={`w-full py-3.5 sm:py-4 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2 border-2 border-b-[5px] transition-all cursor-pointer ${
-            allFilled && phase === 'playing'
-              ? 'bg-[#22c55e] hover:bg-[#16a34a] border-emerald-400 border-b-[#15803d] text-white shadow-lg shadow-emerald-500/25 active:translate-y-0.5'
-              : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed border-b-slate-300'
-          }`}
-        >
-          <CheckCircle2 size={20} />
-          <span>{allFilled ? 'Check My Answer!' : `Fill all ${round.target.length} slots`}</span>
-        </motion.button>
+        {phase !== 'reveal' ? (
+          <motion.button
+            type="button"
+            onClick={handleCheck}
+            disabled={!allFilled || phase !== 'playing'}
+            whileTap={allFilled ? { scale: 0.96 } : {}}
+            className={`w-full py-3.5 sm:py-4 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2 border-2 border-b-[5px] transition-all cursor-pointer ${
+              allFilled && phase === 'playing'
+                ? 'bg-[#22c55e] hover:bg-[#16a34a] border-emerald-400 border-b-[#15803d] text-white shadow-lg shadow-emerald-500/25 active:translate-y-0.5'
+                : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed border-b-slate-300'
+            }`}
+          >
+            <CheckCircle2 size={20} />
+            <span>{allFilled ? 'Check My Answer!' : `Fill all ${round.target.length} slots`}</span>
+          </motion.button>
+        ) : (
+          <div className="flex items-center gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAnswer(false)
+                initRound(roundIdx)
+                playGameSound('flip')
+              }}
+              className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-black text-sm sm:text-base border-2 border-amber-300 border-b-[5px] border-b-amber-700 shadow-lg cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5 transition-all"
+            >
+              <span>Try Again! 🔄</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAnswer(false)
+                advanceRound(false)
+              }}
+              className="py-3.5 px-4 rounded-2xl bg-white/95 hover:bg-white text-slate-700 font-black text-sm border-2 border-white border-b-[4px] border-b-slate-300 shadow-md cursor-pointer flex items-center justify-center gap-1 active:translate-y-0.5 transition-all"
+            >
+              <span>Skip ➡️</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Correct / Wrong feedback banner ── */}

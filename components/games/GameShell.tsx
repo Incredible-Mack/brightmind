@@ -192,7 +192,7 @@ export function GameShell({
       <div
         className={`relative w-full flex flex-col justify-between overflow-hidden ${
           hasCustomBg
-            ? 'max-w-[480px] min-h-screen sm:min-h-[850px] sm:max-h-[96vh] sm:rounded-[40px] sm:border-[8px] sm:border-[#0e2c1a] shadow-[0_25px_60px_rgba(0,0,0,0.8)] bg-cover bg-center'
+            ? 'max-w-[480px] h-[100dvh] sm:h-[860px] sm:max-h-[96vh] sm:rounded-[40px] sm:border-[8px] sm:border-[#0e2c1a] shadow-[0_25px_60px_rgba(0,0,0,0.8)] bg-cover bg-center'
             : 'min-h-screen'
         }`}
         style={hasCustomBg ? { backgroundImage: `url(${bgImage})` } : {}}
@@ -270,7 +270,7 @@ export function GameShell({
         </header>
 
         {/* Main Game Arena */}
-        <main className="flex-1 flex flex-col items-center justify-start py-1 sm:py-2 px-3 sm:px-4 relative z-10 w-full max-w-[440px] mx-auto">
+        <main className="flex-1 flex flex-col items-center justify-start py-1 sm:py-2 px-3 sm:px-4 relative z-10 w-full max-w-[440px] mx-auto overflow-y-auto overflow-x-hidden no-scrollbar pb-8">
           {promptText && (
             <GamePromptCloud>
               <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">

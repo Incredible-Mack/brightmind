@@ -269,10 +269,10 @@ function OptionChip({ label, selected, isCorrect, revealed, disabled, onClick }:
       disabled={disabled}
       whileHover={disabled ? {} : { scale: 1.02 }}
       whileTap={disabled ? {} : { scale: 0.97 }}
-      className={`flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl font-black text-sm text-left transition-all cursor-pointer disabled:cursor-not-allowed select-none ${buttonStyle}`}
+      className={`flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-2xl font-black text-sm text-left transition-all cursor-pointer disabled:cursor-not-allowed select-none ${buttonStyle}`}
     >
       <span
-        className="w-6 h-6 rounded-full flex-shrink-0 border-2 border-white shadow-xs"
+        className="w-5 h-5 rounded-full flex-shrink-0 border-2 border-white shadow-xs"
         style={{ background: swatch }}
       />
       <span className="flex-1 font-nunito">{label}</span>
@@ -400,6 +400,14 @@ export default function ScienceLabPage() {
     }
   }
 
+  // ── Try Again (Reset beaker and let child pick again after wrong guess) ──
+  function handleTryAgain() {
+    setStep('predict')
+    setSelectedOption(null)
+    setSelectionWarning(false)
+    playGameSound('flip')
+  }
+
   // ── Reset Game / New Round ──
   function handleNewRound() {
     setShowResult(false)
@@ -451,16 +459,26 @@ export default function ScienceLabPage() {
       </GamePromptCloud>
 
       {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
-      <GameMascotHill speech="Tap a colour to mix!" />
+      <GameMascotHill
+        speech={
+          step === 'mixing'
+            ? 'Mixing liquids... ⚗️'
+            : step === 'revealed'
+            ? isGuessedCorrect
+              ? 'Brilliant reaction! 🎉'
+              : 'Almost there! Tap Try Again! 🔄'
+            : 'Tap a colour to mix!'
+        }
+      />
 
       {/* ── Main Experiment Bench (Meadow Stage) ─────────────────────────── */}
-      <div className="w-full max-w-md bg-white/95 backdrop-blur-xs rounded-3xl border-2 border-white shadow-lg p-4 sm:p-5 flex flex-col gap-3 my-2 z-20">
+      <div className="w-full max-w-md bg-white/95 backdrop-blur-xs rounded-3xl border-2 border-white shadow-lg p-3 sm:p-4 flex flex-col gap-2 my-1 z-20">
         {/* Flasks Bench */}
-        <div className="flex items-end justify-center gap-3 sm:gap-6 my-2 min-h-[130px] relative">
+        <div className="flex items-end justify-center gap-3 sm:gap-6 my-1 min-h-[115px] relative">
           {/* Left Flask A */}
           <Flask
             color={experiment.colorA}
-            size={72}
+            size={60}
             label={experiment.a}
             fillAmount={step === 'mixing' ? 0.3 : 1}
             tilt={step === 'mixing' ? 38 : 0}
@@ -493,7 +511,7 @@ export default function ScienceLabPage() {
                   ? experiment.colorResult
                   : '#cbd5e1'
               }
-              size={92}
+              size={78}
               label={
                 step === 'revealed'
                   ? experiment.result
@@ -510,32 +528,26 @@ export default function ScienceLabPage() {
           {/* Right Flask B */}
           <Flask
             color={experiment.colorB}
-            size={72}
+            size={60}
             label={experiment.b}
             fillAmount={step === 'mixing' ? 0.3 : 1}
             tilt={step === 'mixing' ? -38 : 0}
           />
         </div>
 
-        {/* Mix Action Button (in predict stage) */}
+        {/* Tip / Guide in predict stage */}
         {step === 'predict' && (
-          <div className="flex flex-col items-center gap-2 mt-1">
-            <motion.button
-              type="button"
-              onClick={handleExecuteMix}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.96 }}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-black text-sm sm:text-base border-2 border-amber-300 border-b-[5px] border-b-amber-700 shadow-md cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5"
-            >
-              <span>POUR &amp; MIX! ⚗️</span>
-            </motion.button>
+          <div className="text-center py-1">
+            <span className="inline-block text-xs font-black text-amber-900 bg-amber-100/90 border border-amber-300 rounded-full px-3 py-1">
+              👇 Tap your prediction below to pour &amp; mix!
+            </span>
             {selectionWarning && (
               <motion.p
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-xs font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200"
+                className="text-xs font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200 mt-1 inline-block"
               >
-                👇 Tap your prediction below first!
+                👇 Please choose a colour below first!
               </motion.p>
             )}
           </div>
@@ -543,32 +555,32 @@ export default function ScienceLabPage() {
 
         {/* Mixing Status Banner */}
         {step === 'mixing' && (
-          <div className="text-center py-1 flex items-center justify-center gap-2 text-[#0284c7] font-black text-sm">
-            <span className="text-xl animate-spin">🧪</span>
-            <span>Mixing liquids in the beaker... Watch the reaction!</span>
+          <div className="text-center py-1 flex items-center justify-center gap-2 text-[#0284c7] font-black text-xs sm:text-sm">
+            <span className="text-lg animate-spin">🧪</span>
+            <span>Mixing liquids in beaker... Watch reaction!</span>
           </div>
         )}
 
         {/* Result Feedback Banner */}
         {step === 'revealed' && (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`p-3 rounded-2xl border-2 text-center ${
+            className={`p-2.5 rounded-2xl border-2 text-center ${
               isGuessedCorrect
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
                 : 'bg-amber-50 border-amber-300 text-amber-950'
             }`}
           >
-            <div className="flex items-center justify-center gap-2 font-black text-sm mb-1">
-              <span className="text-lg">{isGuessedCorrect ? '🎉' : '🧪'}</span>
+            <div className="flex items-center justify-center gap-2 font-black text-xs sm:text-sm mb-0.5">
+              <span className="text-base">{isGuessedCorrect ? '🎉' : '🧪'}</span>
               <span>
                 {isGuessedCorrect
                   ? `Brilliant! ${experiment.a} + ${experiment.b} = ${experiment.result}!`
-                  : `Reaction complete! ${experiment.a} + ${experiment.b} makes ${experiment.result}!`}
+                  : `Reaction: ${experiment.a} + ${experiment.b} makes ${experiment.result}!`}
               </span>
             </div>
-            <p className="text-xs font-bold text-slate-700">
+            <p className="text-[11px] sm:text-xs font-bold text-slate-700">
               💡 <span className="font-extrabold text-slate-900">Fun Fact:</span> {experiment.fact}
             </p>
           </motion.div>
@@ -576,11 +588,11 @@ export default function ScienceLabPage() {
       </div>
 
       {/* ── Option Chips (Prediction Choices) ─────────────────────────────── */}
-      <div className="w-full max-w-md flex flex-col gap-2 my-1 z-20">
-        <p className="text-xs font-black uppercase text-slate-600 tracking-wider px-1">
+      <div className="w-full max-w-md flex flex-col gap-1.5 my-1 z-20">
+        <p className="text-xs font-black uppercase text-slate-700 tracking-wider px-1">
           {step === 'revealed' ? 'Results:' : 'Choose your prediction:'}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {experiment.shuffledOptions.map((opt, i) => (
             <OptionChip
               key={opt}
@@ -599,20 +611,40 @@ export default function ScienceLabPage() {
         </div>
       </div>
 
-      {/* ── Next Button (After Reveal) ────────────────────────────────────── */}
+      {/* ── Action Buttons (Try Again or Next) ──────────────────────────────── */}
       {step === 'revealed' && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md flex justify-end pt-2 z-20"
+          className="w-full max-w-md pt-2 z-20 pb-4"
         >
-          <button
-            type="button"
-            onClick={handleNextQuestion}
-            className="w-full py-3.5 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-white font-black text-sm sm:text-base border-2 border-emerald-400 border-b-[5px] border-b-[#15803d] shadow-md cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5 transition-all"
-          >
-            <span>{qIndex + 1 === QUESTIONS_PER_ROUND ? 'Finish Lab 🏆' : 'Next Experiment ➡️'}</span>
-          </button>
+          {isGuessedCorrect ? (
+            <button
+              type="button"
+              onClick={handleNextQuestion}
+              className="w-full py-3.5 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-white font-black text-sm sm:text-base border-2 border-emerald-400 border-b-[5px] border-b-[#15803d] shadow-lg cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5 transition-all"
+            >
+              <span>{qIndex + 1 === QUESTIONS_PER_ROUND ? 'Finish Lab 🏆' : 'Next Experiment ➡️'}</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 w-full">
+              <button
+                type="button"
+                onClick={handleTryAgain}
+                className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-black text-sm sm:text-base border-2 border-amber-300 border-b-[5px] border-b-amber-700 shadow-lg cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5 transition-all"
+              >
+                <span>Try Again! 🔄</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleNextQuestion}
+                className="py-3.5 px-4 rounded-2xl bg-white/95 hover:bg-white text-slate-700 font-black text-sm border-2 border-white border-b-[4px] border-b-slate-300 shadow-md cursor-pointer flex items-center justify-center gap-1 active:translate-y-0.5 transition-all"
+                title="Skip to next question"
+              >
+                <span>Skip ➡️</span>
+              </button>
+            </div>
+          )}
         </motion.div>
       )}
 
