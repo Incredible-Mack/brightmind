@@ -97,7 +97,7 @@ function generateQuestion(ageGroup: AgeGroup): Question {
     return {
       question: `${a} × ${b} = ?`,
       answer,
-      options: uniqueOptions(answer, 4, 4, 81),
+      options: uniqueOptions(answer, 6, 4, 81),
     }
   }
 
@@ -116,6 +116,8 @@ function generateQuestion(ageGroup: AgeGroup): Question {
         parseFloat((answer + 0.25).toFixed(2)),
         parseFloat((answer - 0.25).toFixed(2)),
         parseFloat((answer + 0.5).toFixed(2)),
+        parseFloat((answer - 0.5).toFixed(2)),
+        parseFloat((answer + 1).toFixed(2)),
       ]),
     }
   } else {
@@ -126,7 +128,7 @@ function generateQuestion(ageGroup: AgeGroup): Question {
     return {
       question: `${a} ÷ ${b} = ?`,
       answer,
-      options: uniqueOptions(answer, 4, 1, 81),
+      options: uniqueOptions(answer, 6, 1, 81),
     }
   }
 }
@@ -299,7 +301,7 @@ export default function MathQuestPage() {
       title="Math Quest"
       emoji="⚔️"
       accentColor={accent}
-      bgColor={bg}
+      bgImage="/images/games/quiz-bg.webp"
       progress={questionIndex + 1}
       totalProgress={TOTAL_QUESTIONS}
       onSpeak={() => speakGameText('What is ' + question.question.replace('?', ''))}
