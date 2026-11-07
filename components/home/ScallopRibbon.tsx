@@ -12,7 +12,7 @@ interface ScallopDividerProps {
  * Zero glitching, zero dark bands, 100% SVG precision.
  */
 export function ScallopRibbon({
-  topBg = '#161338',
+  topBg = '#22c55e',
   bottomBg = '#fffdf8',
   className = '',
   variant = 'scallop',

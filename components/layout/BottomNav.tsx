@@ -14,7 +14,7 @@ const items = [
 export function BottomNav() {
   const pathname = usePathname()
   return (
-    <nav className="fixed bottom-3 left-4 right-4 z-40 sm:hidden bg-[#201c4d]/95 backdrop-blur-md border border-white/15 rounded-3xl shadow-2xl shadow-indigo-950/60 safe-area-pb">
+    <nav className="fixed bottom-3 left-4 right-4 z-40 sm:hidden bg-white/95 backdrop-blur-md border-2 border-sky-100 rounded-3xl shadow-xl shadow-sky-950/10 safe-area-pb">
       <div className="flex items-center px-1.5 py-1">
         {items.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
@@ -27,15 +27,15 @@ export function BottomNav() {
               <div
                 className={`p-1.5 rounded-xl transition-all ${
                   active
-                    ? 'bg-[#facc15] text-[#201c4d] shadow-md shadow-amber-400/40 scale-105'
-                    : 'text-white/60 hover:text-white'
+                    ? 'bg-[#0284c7] text-white shadow-md shadow-sky-400/30 scale-105'
+                    : 'text-slate-400 hover:text-slate-700'
                 }`}
               >
                 <Icon size={18} strokeWidth={active ? 2.5 : 2} />
               </div>
               <span
                 className={`text-[10px] font-black font-nunito tracking-tight ${
-                  active ? 'text-[#facc15] font-extrabold' : 'text-white/60'
+                  active ? 'text-[#0284c7] font-extrabold' : 'text-slate-400 font-bold'
                 }`}
               >
                 {label}

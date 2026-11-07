@@ -14,6 +14,7 @@ import { LessonCard } from '@/components/lesson/LessonCard'
 import { Pip } from '@/components/mascot/Pip'
 import { Spinner } from '@/components/ui/Spinner'
 import { ScallopRibbon } from '@/components/home/ScallopRibbon'
+import { AnimatedSun, DoodleCloud, DoodleStar } from '@/components/home/KidsDoodles'
 import { useRefetchOnFocus } from '@/hooks/useRefetchOnFocus'
 import { useCoach } from '@/hooks/useCoach'
 import type { Lesson, LessonProgress } from '@/types/lesson'
@@ -84,7 +85,7 @@ export default function DashboardPage() {
   useRefetchOnFocus(() => { refresh(); coach.refresh() })
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#201c4d]">
+    <div className="min-h-screen flex items-center justify-center bg-[#f0f9ff]">
       <Spinner size={44} />
     </div>
   )
@@ -98,12 +99,17 @@ export default function DashboardPage() {
   return (
     <div className="w-full flex flex-col">
       
-      {/* ── Full-Bleed Twilight Hero Greeting (Matching Landing Page) ── */}
-      <section className="relative bg-[#201c4d] text-white pt-6 sm:pt-10 overflow-hidden">
+      {/* ── Full-Bleed Sunny Sky Hero Greeting ── */}
+      <section className="relative bg-gradient-to-b from-[#e0f2fe] via-[#f0f9ff] to-[#e0f2fe] text-slate-800 pt-6 sm:pt-10 overflow-hidden">
         
-        {/* Soft Purple Cloud Puffs */}
-        <div className="absolute top-6 left-8 w-32 h-16 bg-[#2e2968] rounded-full pointer-events-none opacity-80" />
-        <div className="absolute top-4 right-16 w-40 h-20 bg-[#2e2968] rounded-full pointer-events-none opacity-75 hidden sm:block" />
+        {/* Friendly Sun & Floating Clouds in Sunny Daytime Sky */}
+        <div className="absolute top-4 left-6 sm:left-12 w-20 h-20 sm:w-28 sm:h-28 pointer-events-none opacity-90 z-0">
+          <AnimatedSun />
+        </div>
+        <DoodleCloud className="absolute top-8 right-12 sm:right-28 w-40 sm:w-56 h-20 sm:h-28 opacity-80 z-0" delay={0} />
+        <DoodleCloud className="absolute top-16 left-32 sm:left-48 w-32 sm:w-44 h-16 sm:h-22 opacity-70 z-0" delay={1.5} />
+        <DoodleStar className="absolute top-28 left-1/3 w-7 h-7 opacity-70 z-0" />
+        <DoodleStar className="absolute top-20 right-1/4 w-8 h-8 opacity-70 z-0" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-20">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
@@ -112,20 +118,20 @@ export default function DashboardPage() {
             <div className="lg:col-span-8 space-y-4 pb-6 sm:pb-10">
               
               {/* Online / Active Badge */}
-              <div className="inline-flex items-center gap-2 bg-[#171439]/90 border border-white/15 rounded-full px-4 py-1.5 text-xs font-black text-purple-200 shadow-sm">
+              <div className="inline-flex items-center gap-2 bg-white/95 border-2 border-sky-200 rounded-full px-4 py-1.5 text-xs font-black text-[#0f4c5c] shadow-xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] animate-pulse" />
                 <span>Pip is ready for today&apos;s lesson!</span>
               </div>
 
               {/* Big Bubbly Greeting */}
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#0f4c5c] leading-tight tracking-tight">
                 {greeting},{' '}
-                <span className="text-[#facc15]">{child?.name || 'Little Star'}</span>!
+                <span className="text-[#0284c7]">{child?.name || 'Little Star'}</span>!
               </h1>
 
               {/* Multiple Children Switcher */}
               {multipleChildren && (
-                <Link href="/parent" className="inline-flex items-center gap-2 text-purple-200 hover:text-white text-xs font-extrabold bg-white/10 hover:bg-white/20 px-3.5 py-1.5 rounded-xl transition-all">
+                <Link href="/parent" className="inline-flex items-center gap-2 text-sky-700 hover:text-sky-900 text-xs font-extrabold bg-white/90 hover:bg-white border border-sky-200 px-3.5 py-1.5 rounded-xl transition-all shadow-xs">
                   <Users size={14} />
                   <span>Switch child profile</span>
                   <ChevronRight size={14} />
@@ -134,17 +140,27 @@ export default function DashboardPage() {
 
               {/* Gamification Level Strip */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 max-w-2xl">
-                <div className="sm:col-span-2 bg-[#171439]/90 border border-white/10 rounded-2xl p-3 shadow-inner">
+                <div className="sm:col-span-2">
                   <XPBar />
                 </div>
-                <div className="flex items-center justify-around bg-[#171439]/90 border border-white/10 rounded-2xl p-3">
-                  <div className="flex items-center gap-1.5">
-                    <Flame size={18} className="text-orange-400" fill="#f97316" />
-                    <span className="text-orange-200 font-black text-sm font-nunito">{streak}d Streak</span>
+                <div className="flex items-center justify-around bg-white border border-purple-100 rounded-3xl p-4 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-2xl bg-orange-50 border border-orange-200 flex items-center justify-center">
+                      <Flame size={20} className="text-orange-500" fill="#f97316" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-orange-950 font-black text-sm font-nunito">{streak}d</span>
+                      <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Streak</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Heart size={18} className="text-rose-400" fill="#f43f5e" />
-                    <span className="text-rose-200 font-black text-sm font-nunito">{lives} Hearts</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center">
+                      <Heart size={20} className="text-rose-500" fill="#f43f5e" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-rose-950 font-black text-sm font-nunito">{lives}</span>
+                      <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Hearts</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -155,11 +171,11 @@ export default function DashboardPage() {
             <div className="lg:col-span-4 flex flex-col items-center justify-end relative z-20 pb-0 lg:-mb-8">
               
               {/* Speech Bubble */}
-              <div className="bg-white text-slate-900 rounded-3xl px-4 py-3 shadow-2xl max-w-[260px] mb-3 relative z-30 border-2 border-slate-100">
+              <div className="bg-white text-slate-900 rounded-3xl px-4 py-3 shadow-xl max-w-[260px] mb-3 relative z-30 border-2 border-[#bae6fd]">
                 <p className="font-nunito font-black text-xs sm:text-sm leading-snug text-center text-slate-800">
                   {pipText}
                 </p>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 border-r border-b border-slate-100" />
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r-2 border-b-2 border-[#bae6fd] rotate-45" />
               </div>
 
               {/* Pip Character */}
@@ -185,11 +201,12 @@ export default function DashboardPage() {
           >
             <path
               d="M 0 80 Q 400 20 850 65 T 1440 40 L 1440 180 L 0 180 Z"
-              fill="#1e6b37"
+              fill="#86efac"
+              opacity="0.6"
             />
             <path
               d="M 0 115 Q 420 55 900 95 T 1440 70 L 1440 180 L 0 180 Z"
-              fill="#2ea84e"
+              fill="#22c55e"
             />
             {/* Daisies */}
             <g transform="translate(320, 125)">
@@ -204,12 +221,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Ground Bar under Hills */}
-        <div className="w-full bg-[#161338] h-3" />
+        <div className="w-full bg-[#22c55e] h-3" />
 
       </section>
 
       {/* ── Scalloped Cloud Transition into Sunny Canvas ──────────────── */}
-      <ScallopRibbon topBg="#161338" bottomBg="#fffdf8" variant="scallop" />
+      <ScallopRibbon topBg="#22c55e" bottomBg="#fffdf8" variant="scallop" />
 
       {/* ── Main Content Area: Warm Sunny Canvas with 3D Color Bricks ─── */}
       <section className="py-10 px-4 sm:px-6 bg-[#fffdf8] relative overflow-hidden">

@@ -35,17 +35,17 @@ export function VideoCard({ video, index = 0 }: VideoCardProps) {
                 unoptimized
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-[#201c4d]">
-                <div className="w-16 h-16 rounded-full bg-white/15 border-2 border-white/30 flex items-center justify-center">
-                  <Play size={28} className="text-[#facc15] ml-1" fill="#facc15" />
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-tr from-sky-400 to-indigo-500">
+                <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center">
+                  <Play size={28} className="text-white ml-1" fill="#ffffff" />
                 </div>
               </div>
             )}
             
             {/* Hover overlay with playful bouncing play icon */}
-            <div className="absolute inset-0 bg-[#201c4d]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-xs">
-              <div className="w-16 h-16 rounded-full bg-[#facc15] text-[#201c4d] shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform">
-                <Play size={28} fill="#201c4d" className="ml-1" />
+            <div className="absolute inset-0 bg-[#0f4c5c]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-xs">
+              <div className="w-16 h-16 rounded-full bg-white text-[#0284c7] shadow-lg flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                <Play size={28} fill="#0284c7" className="ml-1 text-[#0284c7]" />
               </div>
             </div>
 

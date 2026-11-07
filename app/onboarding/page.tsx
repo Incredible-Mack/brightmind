@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Pip } from '@/components/mascot/Pip'
 import { toast } from '@/components/ui/Toast'
+import { AnimatedSun, DoodleCloud, DoodleStar } from '@/components/home/KidsDoodles'
 import type {
   AgeGroup, LearningProfile,
   ReadingLevel, MathLevel, LearningStyle, FocusTime, LanguageBackground, Interest,
@@ -175,21 +176,33 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#201c4d] flex flex-col justify-between p-6 relative overflow-hidden font-nunito selection:bg-amber-300 selection:text-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-[#e0f2fe] via-[#f0f9ff] to-[#fffdf8] flex flex-col justify-between p-4 sm:p-6 relative overflow-hidden font-nunito selection:bg-amber-300 selection:text-slate-900">
       
-      {/* Soft Purple Cloud Puffs in Twilight Sky */}
-      <div className="absolute top-10 left-12 w-36 h-18 bg-[#2e2968] rounded-full pointer-events-none opacity-80" />
-      <div className="absolute top-8 right-16 w-48 h-22 bg-[#2e2968] rounded-full pointer-events-none opacity-75" />
+      {/* Friendly Sun & Floating Clouds in Sunny Daytime Sky */}
+      <div className="absolute top-4 left-6 sm:left-12 w-20 h-20 sm:w-28 sm:h-28 pointer-events-none opacity-90 z-0">
+        <AnimatedSun />
+      </div>
+      <DoodleCloud className="absolute top-10 left-20 sm:left-32 w-32 sm:w-44 h-16 sm:h-20 opacity-70 z-0" delay={0} />
+      <DoodleCloud className="absolute top-8 right-10 sm:right-24 w-40 sm:w-52 h-20 sm:h-24 opacity-80 z-0" delay={1.5} />
+      <DoodleStar className="absolute top-32 left-1/4 w-7 h-7 opacity-60 z-0" />
+      <DoodleStar className="absolute top-24 right-1/4 w-8 h-8 opacity-60 z-0" />
 
-      {/* Header with Pink Pill Logo */}
+      {/* Header with Official Bright Steps Logo & Step Badge */}
       <header className="relative z-20 flex items-center justify-between max-w-xl mx-auto w-full pt-2">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-[#f43f5e] hover:bg-[#e11d48] px-3.5 py-1.5 rounded-2xl flex items-center gap-2 shadow-md border-2 border-white/20">
-            <Sparkles size={16} className="text-white" />
-            <span className="font-black text-lg tracking-tight text-white">Bright Steps</span>
+        <Link href="/" className="flex items-center gap-3 group cursor-pointer">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0284c7] to-[#38bdf8] border-2 border-white shadow-md flex items-center justify-center text-xl transition-transform group-hover:scale-105">
+            📖
+          </div>
+          <div className="flex flex-col">
+            <span className="text-lg sm:text-xl font-black text-[#0f4c5c] tracking-tight leading-none group-hover:text-[#0284c7] transition-colors">
+              Bright Steps
+            </span>
+            <span className="text-[9px] sm:text-[10px] font-black text-[#0284c7] tracking-wider uppercase mt-0.5">
+              Imagine • Discover • Grow
+            </span>
           </div>
         </Link>
-        <div className="text-white font-black text-xs bg-white/10 px-3 py-1 rounded-full">
+        <div className="text-[#0284c7] font-black text-xs bg-white border border-[#bae6fd] px-3.5 py-1.5 rounded-full shadow-xs">
           Step {step + 1} of 5
         </div>
       </header>
@@ -204,7 +217,7 @@ export default function OnboardingPage() {
               <div
                 key={i}
                 className={`h-2.5 rounded-full transition-all duration-300 ${
-                  i === step ? 'w-8 bg-[#facc15]' : i < step ? 'w-2.5 bg-[#22c55e]' : 'w-2.5 bg-white/20'
+                  i === step ? 'w-8 bg-[#0284c7]' : i < step ? 'w-2.5 bg-[#22c55e]' : 'w-2.5 bg-slate-300/70'
                 }`}
               />
             ))}
@@ -213,9 +226,9 @@ export default function OnboardingPage() {
           {/* Pip Speaking */}
           <div className="flex items-end gap-3 mb-6 justify-center">
             <Pip size="md" mood={step === 4 ? 'excited' : 'happy'} animate="idle" />
-            <div className="bg-white text-slate-800 rounded-2xl px-4 py-2.5 shadow-xl border-2 border-white relative text-xs sm:text-sm font-black max-w-[280px]">
+            <div className="bg-white text-slate-800 rounded-2xl px-4 py-2.5 shadow-md border-2 border-[#bae6fd] relative text-xs sm:text-sm font-black max-w-[280px]">
               <span>{msgs[step]}</span>
-              <div className="absolute -bottom-1.5 left-4 w-3 h-3 bg-white rotate-45" />
+              <div className="absolute -bottom-1.5 left-4 w-3 h-3 bg-white border-b-2 border-r-2 border-[#bae6fd] rotate-45" />
             </div>
           </div>
 
@@ -225,12 +238,12 @@ export default function OnboardingPage() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-white shadow-2xl text-slate-800"
+              className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#bae6fd] border-b-[6px] border-b-[#7dd3fc] shadow-xl shadow-sky-100/50 text-slate-800"
             >
               {/* Step 0 — Name */}
               {step === 0 && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-black text-[#1d2445]">What should Pip call your learner?</h2>
+                  <h2 className="text-xl font-black text-[#0f4c5c]">What should Pip call your learner?</h2>
                   <Input
                     label="Child's First Name"
                     placeholder="e.g. Amara"
@@ -244,14 +257,14 @@ export default function OnboardingPage() {
               {/* Step 1 — Age group */}
               {step === 1 && (
                 <div className="space-y-3">
-                  <h2 className="text-xl font-black text-[#1d2445] mb-2">Select their age band:</h2>
+                  <h2 className="text-xl font-black text-[#0f4c5c] mb-2">Select their age band:</h2>
                   {AGE_GROUPS.map(g => (
                     <button
                       key={g.range}
                       onClick={() => setAgeGroup(g.range)}
                       className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center gap-4 ${
                         ageGroup === g.range
-                          ? 'border-[#22c55e] bg-emerald-50 text-emerald-950 font-black shadow-sm'
+                          ? 'border-[#0284c7] bg-sky-50 text-sky-950 font-black shadow-sm'
                           : 'border-slate-200 bg-white hover:border-slate-300 text-slate-800'
                       }`}
                     >
@@ -260,7 +273,7 @@ export default function OnboardingPage() {
                         <div className="font-black text-base">{g.label} years</div>
                         <div className="text-slate-500 font-bold text-xs mt-0.5">{g.desc}</div>
                       </div>
-                      {ageGroup === g.range && <Check size={20} className="text-[#22c55e]" />}
+                      {ageGroup === g.range && <Check size={20} className="text-[#0284c7]" />}
                     </button>
                   ))}
                 </div>
@@ -269,7 +282,7 @@ export default function OnboardingPage() {
               {/* Step 2 — Avatar */}
               {step === 2 && (
                 <div>
-                  <h2 className="text-xl font-black text-[#1d2445] text-center mb-1">Pick an Adventure Avatar</h2>
+                  <h2 className="text-xl font-black text-[#0f4c5c] text-center mb-1">Pick an Adventure Avatar</h2>
                   <p className="text-slate-500 font-bold text-xs text-center mb-4">Tap to choose their explorer buddy</p>
                   <div className="grid grid-cols-4 gap-3">
                     {AVATAR_OPTIONS.map(av => (
@@ -278,7 +291,7 @@ export default function OnboardingPage() {
                         onClick={() => setAvatar(av.id)}
                         className={`relative aspect-square rounded-2xl transition-all duration-200 ${
                           avatar === av.id
-                            ? 'scale-110 ring-4 ring-[#22c55e] ring-offset-2 ring-offset-white'
+                            ? 'scale-110 ring-4 ring-[#0284c7] ring-offset-2 ring-offset-white'
                             : 'opacity-70 hover:opacity-100 hover:scale-105'
                         }`}
                       >
@@ -294,7 +307,7 @@ export default function OnboardingPage() {
               {/* Step 3 — Full learning profile */}
               {step === 3 && (
                 <div className="max-h-[50vh] overflow-y-auto pr-1">
-                  <h2 className="text-xl font-black text-[#1d2445] mb-4">Personalize the Adventure:</h2>
+                  <h2 className="text-xl font-black text-[#0f4c5c] mb-4">Personalize the Adventure:</h2>
                   <CardRow label="Reading ability"       options={readingOpts}   value={reading}   onChange={v => setReading(v as ReadingLevel)} />
                   <CardRow label="Numbers & maths"       options={mathOpts}      value={math}      onChange={v => setMath(v as MathLevel)} />
                   <CardRow label="Language background"   options={langOpts}      value={language}  onChange={v => setLanguage(v as LanguageBackground)} />
@@ -315,10 +328,10 @@ export default function OnboardingPage() {
                 const av = AVATAR_OPTIONS.find(a => a.id === avatar) ?? AVATAR_OPTIONS[0]
                 return (
                   <div className="text-center py-2">
-                    <div className={`w-20 h-20 rounded-full ${av.bgColor} flex items-center justify-center text-4xl mx-auto mb-3 ring-4 ring-[#22c55e] shadow-lg`}>
+                    <div className={`w-20 h-20 rounded-full ${av.bgColor} flex items-center justify-center text-4xl mx-auto mb-3 ring-4 ring-[#0284c7] shadow-lg`}>
                       {av.emoji}
                     </div>
-                    <div className="text-[#1d2445] font-black text-2xl font-nunito">{name}</div>
+                    <div className="text-[#0f4c5c] font-black text-2xl font-nunito">{name}</div>
                     <div className="text-slate-500 font-bold text-sm mt-0.5">Ages {ageGroup} Explorer</div>
                     <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-900 text-xs font-bold leading-relaxed">
                       🌟 Learning path ready! All 4 core subjects configured for {name}.
@@ -335,7 +348,7 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => setStep(s => s - 1)}
-                className="bg-white/20 hover:bg-white/30 text-white font-black text-sm px-5 py-3.5 rounded-2xl transition-all"
+                className="bg-white hover:bg-slate-50 text-slate-700 font-black text-sm px-5 py-3.5 rounded-2xl border-2 border-slate-200 border-b-4 border-slate-300 shadow-sm transition-all active:translate-y-0.5"
               >
                 <ChevronLeft size={20} />
               </button>
@@ -344,7 +357,7 @@ export default function OnboardingPage() {
               type="button"
               disabled={!canNext[step] || loading}
               onClick={next}
-              className="flex-1 bg-[#facc15] hover:bg-[#eab308] text-[#201c4d] font-black text-base py-3.5 px-6 rounded-2xl shadow-md transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+              className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white font-black text-base py-3.5 px-6 rounded-2xl shadow-md border-b-4 border-b-[#047857] transition-all hover:scale-[1.01] active:translate-y-1 active:border-b-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
               <span>{step === 4 ? (loading ? 'Creating...' : "Let's Learn! 🚀") : 'Continue'}</span>
               {step < 4 && <ChevronRight size={20} />}
@@ -361,8 +374,16 @@ export default function OnboardingPage() {
           preserveAspectRatio="none"
           className="w-full h-16 sm:h-24 block"
         >
-          <path d="M 0 40 Q 400 10 850 35 T 1440 25 L 1440 120 L 0 120 Z" fill="#1e6b37" />
-          <path d="M 0 65 Q 420 30 900 55 T 1440 35 L 1440 120 L 0 120 Z" fill="#2ea84e" />
+          <path d="M 0 40 Q 400 10 850 35 T 1440 25 L 1440 120 L 0 120 Z" fill="#86efac" opacity="0.6" />
+          <path d="M 0 65 Q 420 30 900 55 T 1440 35 L 1440 120 L 0 120 Z" fill="#22c55e" />
+          <g transform="translate(240, 68)">
+            <circle cx="0" cy="0" r="5" fill="#ffffff" />
+            <circle cx="0" cy="0" r="2" fill="#facc15" />
+          </g>
+          <g transform="translate(1200, 58)">
+            <circle cx="0" cy="0" r="5" fill="#ffffff" />
+            <circle cx="0" cy="0" r="2" fill="#facc15" />
+          </g>
         </svg>
       </div>
 
