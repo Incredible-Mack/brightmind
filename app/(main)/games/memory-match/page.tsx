@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GameShell, RoundResult, burstConfetti, playGameSound } from '@/components/games/GameShell'
+import { GameShell, RoundResult, burstConfetti, playGameSound, GamePromptCloud, GameMascotHill, speakGameText } from '@/components/games/GameShell'
 import { useAppStore } from '@/store/useAppStore'
 import { getAgeGroup } from '@/lib/curriculum.data'
 import type { AgeGroup } from '@/types/child'
@@ -72,41 +72,49 @@ function CardTile({ card, onClick, disabled }: CardTileProps) {
     >
       {/* Inner container that rotates */}
       <motion.div
-        className="relative w-full h-full cursor-pointer"
+        className="relative w-full h-full cursor-pointer select-none"
         style={{ transformStyle: 'preserve-3d' }}
         animate={{ rotateY: isFlipped || isMatched ? 180 : 0 }}
         transition={{ duration: 0.35, ease: 'easeInOut' }}
+        whileHover={!disabled && !isFlipped && !isMatched ? { scale: 1.05 } : {}}
+        whileTap={!disabled && !isFlipped && !isMatched ? { scale: 0.95 } : {}}
       >
-        {/* Back face (star pattern) */}
+        {/* Back face (Glossy Blue / Indigo with golden star & 3D bevel) */}
         <div
           className={[
-            'absolute inset-0 rounded-2xl flex items-center justify-center',
-            'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md',
-            'cursor-pointer select-none border-2 border-white/30',
-            disabled || isFlipped || isMatched ? 'cursor-default' : 'hover:scale-[1.03] transition-transform',
+            'absolute inset-0 rounded-2xl sm:rounded-3xl flex items-center justify-center',
+            'bg-gradient-to-b from-[#38bdf8] via-[#0284c7] to-[#0369a1]',
+            'border-2 border-white/80 border-b-[5px] border-b-[#075985]',
+            'shadow-lg shadow-sky-950/15',
+            disabled || isFlipped || isMatched ? 'cursor-default' : 'cursor-pointer',
           ].join(' ')}
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <span className="text-2xl sm:text-3xl opacity-70 select-none">⭐</span>
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center shadow-inner">
+            <span className="text-2xl sm:text-3xl select-none filter drop-shadow">⭐</span>
+          </div>
         </div>
 
-        {/* Front face (emoji) */}
+        {/* Front face (3D White card or Emerald when matched) */}
         <div
           className={[
-            'absolute inset-0 rounded-2xl flex items-center justify-center select-none border-2',
+            'absolute inset-0 rounded-2xl sm:rounded-3xl flex items-center justify-center select-none',
             isMatched
-              ? 'bg-gradient-to-br from-emerald-400 to-teal-500 border-emerald-300 shadow-lg shadow-emerald-200'
-              : 'bg-gradient-to-br from-amber-50 to-orange-100 border-amber-200 shadow-md',
+              ? 'bg-[#22c55e] border-2 border-emerald-300 border-b-[5px] border-b-[#15803d] shadow-lg shadow-emerald-500/30'
+              : 'bg-white border-2 border-white border-b-[5px] border-b-slate-200 shadow-md',
           ].join(' ')}
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           <motion.span
-            className="text-2xl sm:text-3xl md:text-4xl"
-            animate={isMatched ? { scale: [1, 1.3, 1] } : {}}
-            transition={{ duration: 0.4 }}
+            className="text-3xl sm:text-4xl md:text-5xl"
+            animate={isMatched ? { scale: [1, 1.25, 1] } : {}}
+            transition={{ duration: 0.35 }}
           >
             {card.emoji}
           </motion.span>
+          {isMatched && (
+            <span className="absolute top-1.5 right-2 text-white text-xs font-black">✓</span>
+          )}
         </div>
       </motion.div>
     </div>
@@ -314,33 +322,71 @@ export default function MemoryMatchPage() {
     <GameShell
       title="Memory Match"
       emoji="🧠"
-      accentColor="#6366f1"
-      bgColor="#f5f3ff"
+      accentColor="#0284c7"
+      progress={matchCount}
+      totalProgress={totalPairs}
+      onSpeak={() =>
+        speakGameText(
+          isPreview
+            ? 'Memorize the cards! Flipping soon!'
+            : 'Find the matching pairs!'
+        )
+      }
     >
-      {/* Stats bar */}
-      <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 mb-4 text-sm font-black">
-        {/* Timer */}
-        <div className="flex items-center gap-1.5 bg-white border-2 border-indigo-100 rounded-2xl px-3.5 py-1.5 shadow-sm">
-          <span className="text-base">⏱️</span>
-          <span className="text-indigo-700 tabular-nums">{formatTime(elapsed)}</span>
-        </div>
+      {/* ── Cartoon Cloud Thought Bubble ─────────────────────────────────── */}
+      <GamePromptCloud>
+        {isPreview ? (
+          <div className="flex flex-col items-center gap-1.5 py-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl animate-pulse">👀</span>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
+                Memorize the Cards!
+              </h2>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full text-xs font-black">
+                ⏳ {previewSeconds}s left
+              </span>
+              <button
+                type="button"
+                onClick={finishPreview}
+                className="px-3.5 py-1 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-black text-xs border border-emerald-400 border-b-2 border-b-[#15803d] shadow-sm cursor-pointer active:translate-y-0.5"
+              >
+                I&apos;m Ready! 🚀
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-1">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight select-none">
+              Find Matching Pairs! ⭐
+            </h2>
+          </div>
+        )}
+      </GamePromptCloud>
 
-        {/* Flips */}
-        <div className="flex items-center gap-1.5 bg-white border-2 border-violet-100 rounded-2xl px-3.5 py-1.5 shadow-sm">
-          <span className="text-base">🔄</span>
-          <span className="text-violet-700">{flipCount} flips</span>
-        </div>
+      {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
+      <GameMascotHill
+        speech={
+          isPreview
+            ? `${previewSeconds}s to memorize!`
+            : missStreak > 0
+            ? 'Keep looking, you got this!'
+            : 'Tap cards to find twins!'
+        }
+      />
 
-        {/* Matches */}
-        <div className="flex items-center gap-1.5 bg-white border-2 border-emerald-100 rounded-2xl px-3.5 py-1.5 shadow-sm">
-          <span className="text-base">✅</span>
-          <span className="text-emerald-700">{matchCount}/{totalPairs}</span>
-        </div>
-
-        {/* Round */}
-        <div className="flex items-center gap-1.5 bg-white border-2 border-amber-100 rounded-2xl px-3.5 py-1.5 shadow-sm">
-          <span className="text-base">🎯</span>
-          <span className="text-amber-700">Round {round}</span>
+      {/* ── Mini Control / Stats Bar ──────────────────────────────────────── */}
+      <div className="w-full max-w-md flex items-center justify-between px-2 mb-2 z-20">
+        <div className="flex items-center gap-2">
+          {/* Flips */}
+          <span className="bg-white/90 backdrop-blur-xs border-2 border-white rounded-full px-3 py-1 text-xs font-black text-slate-700 shadow-sm flex items-center gap-1">
+            <span>🔄</span> {flipCount} flips
+          </span>
+          {/* Timer */}
+          <span className="bg-white/90 backdrop-blur-xs border-2 border-white rounded-full px-3 py-1 text-xs font-black text-slate-700 shadow-sm flex items-center gap-1 tabular-nums">
+            <span>⏱️</span> {formatTime(elapsed)}
+          </span>
         </div>
 
         {/* Peek Button (when game active) */}
@@ -349,10 +395,10 @@ export default function MemoryMatchPage() {
             type="button"
             onClick={handlePeek}
             disabled={peeksLeft <= 0 || lockBoard || isPeeking}
-            className={`px-3 py-1.5 rounded-2xl border-2 border-b-4 font-black text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:translate-y-0.5 ${
+            className={`px-3.5 py-1 rounded-full border-2 border-b-[3px] font-black text-xs transition-all shadow-sm flex items-center gap-1 cursor-pointer active:translate-y-0.5 ${
               peeksLeft > 0 && !lockBoard && !isPeeking
-                ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 border-b-amber-400'
-                : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                ? 'bg-amber-300 hover:bg-amber-400 text-amber-950 border-amber-300 border-b-amber-500'
+                : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed opacity-60'
             }`}
             title="Temporarily peek at cards"
           >
@@ -362,76 +408,41 @@ export default function MemoryMatchPage() {
         )}
       </div>
 
-      {/* Initial Preview Banner */}
+      {/* ── Peeking alert / Streak warn ── */}
       <AnimatePresence>
-        {isPreview && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: -10 }}
-            className="mb-4 w-full max-w-md bg-gradient-to-r from-amber-300 via-amber-200 to-yellow-200 text-amber-950 rounded-3xl p-3.5 sm:p-4 shadow-md border-2 border-amber-300 border-b-4 border-b-amber-400 flex items-center justify-between gap-3 font-nunito"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="text-2xl sm:text-3xl">👀</span>
-              <div>
-                <h3 className="font-black text-sm sm:text-base leading-tight">
-                  Memorize the Cards!
-                </h3>
-                <p className="text-xs font-extrabold text-amber-800">
-                  Flipping face down in{' '}
-                  <span className="inline-block bg-white text-amber-900 px-2 py-0.5 rounded-lg font-black shadow-xs">
-                    {previewSeconds}s
-                  </span>
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={finishPreview}
-              className="px-3.5 py-2 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-black text-xs sm:text-sm border-2 border-amber-300 border-b-4 border-b-amber-400 shadow-sm active:translate-y-0.5 transition-all cursor-pointer whitespace-nowrap"
-            >
-              I&apos;m Ready! 🚀
-            </button>
-          </motion.div>
-        )}
-
         {isPeeking && (
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mb-4 flex items-center justify-center gap-2 bg-amber-50 border-2 border-amber-300 rounded-2xl px-4 py-2 text-amber-800 font-black text-xs sm:text-sm"
+            className="mb-2 flex items-center justify-center gap-1.5 bg-amber-100 border-2 border-amber-300 rounded-full px-4 py-1 text-amber-900 font-black text-xs z-20"
           >
             <span>👁️</span>
             <span>Quick peek! Memorize their spots now!</span>
           </motion.div>
         )}
-      </AnimatePresence>
-
-      {/* Miss streak warning */}
-      <AnimatePresence>
         {missStreak > 0 && !isPreview && !isPeeking && (
           <motion.div
             key="streak-warn"
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mb-4 flex items-center gap-2 bg-rose-50 border-2 border-rose-200 rounded-2xl px-4 py-2 text-rose-700 font-bold text-sm"
+            className="mb-2 flex items-center gap-1.5 bg-rose-50 border-2 border-rose-200 rounded-full px-4 py-1 text-rose-700 font-black text-xs z-20"
           >
             <span>⚠️</span>
             <span>
               {missStreak === 1 && 'One mismatch — keep trying!'}
-              {missStreak === 2 && '⚠️ Two mismatches — one more and you lose a heart!'}
+              {missStreak === 2 && 'Two mismatches — careful with your hearts!'}
             </span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Card grid */}
+      {/* ── Card grid (Meadow Stage) ──────────────────────────────────────── */}
       <div
-        className={`grid ${gridColsClass} gap-2 sm:gap-3 w-full`}
+        className={`grid ${gridColsClass} gap-2.5 sm:gap-3 w-full my-1 z-20`}
         style={{
-          maxWidth: cols === 6 ? '640px' : '420px',
+          maxWidth: cols === 6 ? '600px' : '420px',
         }}
       >
         {deck.map(card => (
@@ -444,7 +455,7 @@ export default function MemoryMatchPage() {
         ))}
       </div>
 
-      {/* Completion result overlay */}
+      {/* ── Completion result overlay ── */}
       <RoundResult
         show={showResult}
         xpEarned={xpEarned}

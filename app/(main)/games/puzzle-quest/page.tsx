@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GameShell, RoundResult, burstConfetti, playGameSound } from '@/components/games/GameShell'
+import { GameShell, RoundResult, burstConfetti, playGameSound, GamePromptCloud, GameMascotHill, speakGameText } from '@/components/games/GameShell'
 import { useAppStore } from '@/store/useAppStore'
 import { getAgeGroup } from '@/lib/curriculum.data'
 import { Timer, CheckCircle2, XCircle, Shuffle, Info } from 'lucide-react'
@@ -318,38 +318,28 @@ export default function PuzzleQuestPage() {
     <GameShell
       title="Puzzle Quest"
       emoji="🧩"
-      accentColor="#8b5cf6"
-      bgColor="#f5f3ff"
+      accentColor="#0284c7"
+      progress={roundIdx + 1}
+      totalProgress={10}
+      onSpeak={() => speakGameText('Place the shapes in the matching target order')}
     >
-      {/* ── Progress bar ── */}
-      <div className="w-full max-w-lg mb-4">
-        <div className="flex justify-between text-xs font-black text-purple-600 mb-1">
-          <span>Round {Math.min(roundIdx + 1, 10)} / 10</span>
-          <span className="text-slate-500">{cfg.label}</span>
-        </div>
-        <div className="w-full h-3 bg-purple-100 rounded-full overflow-hidden border border-purple-200">
-          <motion.div
-            className="h-full bg-purple-500 rounded-full"
-            animate={{ width: `${((roundIdx) / 10) * 100}%` }}
-            transition={{ duration: 0.5 }}
-          />
-        </div>
-      </div>
-
       {/* ── Timer bar (age 9+) ── */}
       {cfg.hasTimer && phase === 'playing' && (
-        <div className="w-full max-w-lg mb-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Timer size={14} className="text-slate-500" />
+        <div className="w-full max-w-md mb-2 z-20">
+          <div className="flex items-center justify-between px-2 mb-1">
+            <span className="text-xs font-black text-slate-600 flex items-center gap-1">
+              <Timer size={13} className="text-slate-500" />
+              <span>Time Left</span>
+            </span>
             <span
-              className={`text-xs font-black ${
-                timeLeft <= 5 ? 'text-rose-600' : timeLeft <= 10 ? 'text-amber-600' : 'text-slate-600'
+              className={`text-xs font-black px-2 py-0.5 rounded-full ${
+                timeLeft <= 5 ? 'bg-rose-100 text-rose-700' : 'bg-white/80 text-slate-700'
               }`}
             >
               {timeLeft}s
             </span>
           </div>
-          <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-white/60 rounded-full overflow-hidden shadow-inner">
             <motion.div
               className={`h-full rounded-full transition-colors duration-500 ${timerColor}`}
               animate={{ width: `${timerPct}%` }}
@@ -359,44 +349,43 @@ export default function PuzzleQuestPage() {
         </div>
       )}
 
-      {/* ── Main card ── */}
-      <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl border-2 border-purple-100 p-6 flex flex-col gap-6">
-
-        {/* ── Target display ── */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-black text-purple-700 uppercase tracking-widest bg-purple-100 px-3 py-1 rounded-full">
-              🎯 Target Order
-            </span>
-          </div>
+      {/* ── Big Cartoon Cloud Thought Bubble (Target Sequence) ───────────── */}
+      <GamePromptCloud>
+        <div className="flex flex-col items-center justify-center py-1">
+          <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
+            Target Order 🎯
+          </p>
           <div className="flex items-center justify-center gap-2 flex-wrap">
             {round.target.map((shape, i) => (
               <motion.div
                 key={`target-${i}`}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: i * 0.07, type: 'spring', stiffness: 300, damping: 20 }}
-                className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl border-2 text-3xl
-                  shadow-sm ${SHAPE_BG[shape] ?? 'bg-slate-100 border-slate-300'}`}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: i * 0.05, type: 'spring', damping: 14 }}
+                className="flex flex-col items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-slate-50 border-2 border-slate-200 border-b-4 border-b-slate-300 text-2xl sm:text-3xl shadow-xs"
               >
                 <span>{shape}</span>
-                <span className="text-[9px] font-black text-slate-500 leading-tight mt-0.5">
-                  {i + 1}
-                </span>
               </motion.div>
             ))}
           </div>
         </div>
+      </GamePromptCloud>
 
-        <div className="border-t border-dashed border-purple-100" />
+      {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
+      <GameMascotHill speech="Place shapes in order!" />
 
-        {/* ── Answer slots ── */}
+      {/* ── Meadow Stage: Answer Slots Tray ──────────────────────────────── */}
+      <div className="w-full max-w-md bg-white/90 backdrop-blur-xs rounded-3xl border-2 border-white shadow-lg p-4 sm:p-5 flex flex-col gap-4 my-2 z-20">
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-black uppercase tracking-wider text-[#0284c7] bg-sky-50 border border-sky-200 px-3 py-0.5 rounded-full">
               📥 Your Answer
             </span>
+            <span className="text-[11px] font-bold text-slate-400">
+              Tap slot to remove
+            </span>
           </div>
+
           <div className="flex items-center justify-center gap-2 flex-wrap">
             {slots.map((shape, i) => (
               <motion.button
@@ -404,68 +393,54 @@ export default function PuzzleQuestPage() {
                 type="button"
                 onClick={() => handleSlotClick(i)}
                 whileTap={{ scale: 0.92 }}
-                className={`w-14 h-14 rounded-2xl border-2 border-dashed flex items-center justify-center text-3xl
-                  transition-all duration-150 cursor-pointer
-                  ${shape
-                    ? `${SHAPE_BG[shape] ?? 'bg-slate-100 border-slate-300'} border-solid shadow-sm`
-                    : 'border-indigo-300 bg-indigo-50 hover:bg-indigo-100'
-                  }
-                  ${phase === 'reveal' && showAnswer
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 flex items-center justify-center text-2xl sm:text-3xl transition-all cursor-pointer select-none ${
+                  shape
+                    ? 'bg-white border-white border-b-4 border-b-slate-300 shadow-sm'
+                    : 'border-dashed border-sky-300 bg-sky-50/60 hover:bg-sky-100/70'
+                } ${
+                  phase === 'reveal' && showAnswer
                     ? shape === round.target[i]
-                      ? 'ring-2 ring-emerald-400'
-                      : 'ring-2 ring-rose-400'
+                      ? 'ring-4 ring-emerald-400'
+                      : 'ring-4 ring-rose-400'
                     : ''
-                  }
-                `}
+                }`}
                 aria-label={shape ? `Slot ${i + 1}: ${SHAPE_NAMES[shape]}` : `Empty slot ${i + 1}`}
               >
                 <AnimatePresence mode="wait">
                   {shape ? (
                     <motion.span
                       key={shape + i}
-                      initial={{ scale: 0, rotate: -20 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0, rotate: 20 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      transition={{ type: 'spring', damping: 15 }}
                     >
                       {shape}
                     </motion.span>
                   ) : (
-                    <motion.span
-                      key={`empty-${i}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-indigo-200 font-black text-lg"
-                    >
+                    <span className="text-sky-300 font-black text-sm">
                       {i + 1}
-                    </motion.span>
+                    </span>
                   )}
                 </AnimatePresence>
               </motion.button>
             ))}
           </div>
-
-          {/* Slot hint */}
-          <p className="text-center text-xs text-slate-400 font-semibold mt-2">
-            Tap a slot to remove a shape · Tap a tile then a slot to place
-          </p>
         </div>
 
-        <div className="border-t border-dashed border-purple-100" />
-
-        {/* ── Tile bank ── */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-black text-slate-600 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full">
-              🃏 Tiles
+        {/* ── Tile Bank ── */}
+        <div className="border-t border-slate-100 pt-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+              🃏 Available Shapes
             </span>
             {round.distractorCount > 0 && (
-              <span className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
-                <Info size={10} />
+              <span className="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                 {round.distractorCount} distractor{round.distractorCount > 1 ? 's' : ''}
               </span>
             )}
           </div>
+
           <div className="flex flex-wrap justify-center gap-2">
             {tileBag.map((tile) => (
               <motion.button
@@ -474,25 +449,15 @@ export default function PuzzleQuestPage() {
                 onClick={() => handleTileClick(tile)}
                 disabled={tile.used || phase !== 'playing'}
                 whileTap={!tile.used ? { scale: 0.9 } : {}}
-                whileHover={!tile.used ? { scale: 1.08, y: -3 } : {}}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{
-                  opacity: tile.used ? 0.25 : 1,
-                  y: tile.used ? 4 : 0,
-                  scale: tile.used ? 0.9 : 1,
-                }}
-                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                className={`w-14 h-14 rounded-2xl border-2 text-3xl flex flex-col items-center justify-center
-                  transition-all duration-150
-                  ${tile.used
-                    ? 'opacity-25 cursor-not-allowed bg-slate-100 border-slate-200'
+                whileHover={!tile.used ? { scale: 1.08 } : {}}
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 text-2xl sm:text-3xl flex items-center justify-center transition-all select-none ${
+                  tile.used
+                    ? 'opacity-20 cursor-not-allowed bg-slate-100 border-slate-200'
                     : selectedTile?.id === tile.id
-                      ? `${SHAPE_SELECTED[tile.emoji] ?? 'bg-slate-200 border-slate-500 ring-4 ring-slate-400'} cursor-pointer shadow-lg`
-                      : `${SHAPE_BG[tile.emoji] ?? 'bg-slate-100 border-slate-300'} cursor-pointer shadow-sm hover:shadow-md`
-                  }
-                `}
+                    ? 'bg-amber-100 border-amber-400 border-b-4 border-b-amber-500 ring-4 ring-amber-300 shadow-md cursor-pointer'
+                    : 'bg-white border-white border-b-4 border-b-slate-200 shadow-sm hover:border-b-2 active:translate-y-0.5 cursor-pointer'
+                }`}
                 aria-label={`${SHAPE_NAMES[tile.emoji]} tile${tile.used ? ' (placed)' : ''}`}
-                aria-pressed={selectedTile?.id === tile.id}
               >
                 {tile.emoji}
               </motion.button>
@@ -500,66 +465,34 @@ export default function PuzzleQuestPage() {
           </div>
         </div>
 
-        {/* ── Check button ── */}
+        {/* ── Check Button (3D Emerald Pill) ── */}
         <motion.button
           type="button"
           onClick={handleCheck}
           disabled={!allFilled || phase !== 'playing'}
-          whileTap={allFilled ? { scale: 0.95 } : {}}
-          className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-2
-            border-2 border-b-4 transition-all duration-200
-            ${allFilled && phase === 'playing'
-              ? 'bg-purple-500 hover:bg-purple-600 border-purple-600 border-b-purple-700 text-white cursor-pointer shadow-lg shadow-purple-200'
-              : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
-            }
-          `}
+          whileTap={allFilled ? { scale: 0.96 } : {}}
+          className={`w-full py-3.5 sm:py-4 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center gap-2 border-2 border-b-[5px] transition-all cursor-pointer ${
+            allFilled && phase === 'playing'
+              ? 'bg-[#22c55e] hover:bg-[#16a34a] border-emerald-400 border-b-[#15803d] text-white shadow-lg shadow-emerald-500/25 active:translate-y-0.5'
+              : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed border-b-slate-300'
+          }`}
         >
           <CheckCircle2 size={20} />
-          {allFilled ? 'Check My Answer!' : `Fill all ${round.target.length} slots`}
+          <span>{allFilled ? 'Check My Answer!' : `Fill all ${round.target.length} slots`}</span>
         </motion.button>
       </div>
 
-      {/* ── Correct / Wrong feedback flash ── */}
+      {/* ── Correct / Wrong feedback banner ── */}
       <AnimatePresence>
         {phase === 'checking' && (
           <motion.div
-            className="mt-4 flex items-center gap-2 bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-lg shadow-lg"
-            initial={{ scale: 0.7, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
+            className="my-2 flex items-center gap-2 bg-emerald-500 text-white px-6 py-2 rounded-full font-black text-sm shadow-md z-20"
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 22 }}
           >
-            <CheckCircle2 size={22} />
-            {firstTry ? '🎉 Perfect! +15 XP' : '✅ Correct! +5 XP'}
-          </motion.div>
-        )}
-        {phase === 'reveal' && showAnswer && (
-          <motion.div
-            className="mt-4 w-full max-w-lg"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 flex flex-col items-center gap-2">
-              <div className="flex items-center gap-2 text-rose-700 font-black">
-                <XCircle size={18} />
-                Correct order was:
-              </div>
-              <div className="flex gap-2">
-                {round.target.map((shape, i) => (
-                  <motion.div
-                    key={`reveal-${i}`}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: i * 0.08, type: 'spring', stiffness: 400, damping: 20 }}
-                    className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center text-2xl
-                      ${SHAPE_BG[shape] ?? 'bg-slate-100 border-slate-300'}`}
-                  >
-                    {shape}
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+            <CheckCircle2 size={18} />
+            <span>{firstTry ? '🎉 Perfect! +15 XP' : '✅ Correct! +5 XP'}</span>
           </motion.div>
         )}
       </AnimatePresence>

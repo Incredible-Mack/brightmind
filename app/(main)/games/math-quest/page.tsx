@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GameShell, RoundResult, burstConfetti, playGameSound } from '@/components/games/GameShell'
+import { GameShell, RoundResult, burstConfetti, playGameSound, GamePromptCloud, GameMascotHill, GameOptionButton, speakGameText } from '@/components/games/GameShell'
 import { useAppStore } from '@/store/useAppStore'
 import { getAgeGroup } from '@/lib/curriculum.data'
 import type { AgeGroup } from '@/types/child'
@@ -300,251 +300,160 @@ export default function MathQuestPage() {
       emoji="⚔️"
       accentColor={accent}
       bgColor={bg}
+      progress={questionIndex + 1}
+      totalProgress={TOTAL_QUESTIONS}
+      onSpeak={() => speakGameText('What is ' + question.question.replace('?', ''))}
     >
-      {/* ── Progress Bar ─────────────────────────────────────────────────── */}
-      <div className="w-full max-w-lg mb-5">
-        <div className="flex justify-between items-center mb-1.5">
-          <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
-            Round {roundIndex + 1}
-          </span>
-          <span className="text-xs font-black text-slate-500">
-            {questionIndex}/{TOTAL_QUESTIONS}
-          </span>
-        </div>
-        <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: accent }}
-            animate={{ width: `${progressPct}%` }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-          />
-        </div>
-      </div>
-
-      {/* ── Battle Arena ─────────────────────────────────────────────────── */}
-      <div className="w-full max-w-lg flex items-center justify-center gap-6 mb-6">
-        {/* Knight */}
+      {/* ── Mini Battle Arena Bar ─────────────────────────────────────────── */}
+      <div className="w-full max-w-md flex items-center justify-between px-3 py-1 mb-1 z-20">
+        {/* Knight Badge */}
         <motion.div
-          className="flex flex-col items-center gap-1"
+          className="flex items-center gap-2 bg-white/90 backdrop-blur-xs px-3 py-1.5 rounded-2xl border-2 border-white shadow-sm"
           animate={
             knightHit
-              ? { x: [-8, 8, -6, 6, 0], rotate: [-5, 5, -3, 3, 0] }
+              ? { x: [-6, 6, -4, 4, 0], rotate: [-4, 4, 0] }
               : { x: 0, rotate: 0 }
           }
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
         >
-          <motion.div
-            className="w-20 h-20 rounded-3xl flex items-center justify-center text-5xl shadow-lg border-4 border-white"
-            style={{ background: `${accent}22` }}
-            animate={
-              phase === 'correct'
-                ? { scale: [1, 1.2, 1], rotate: [0, -10, 10, 0] }
-                : { scale: 1, rotate: 0 }
-            }
-            transition={{ duration: 0.5 }}
-          >
-            {KNIGHT}
-          </motion.div>
-          <span className="text-xs font-black text-slate-600">Knight</span>
-        </motion.div>
-
-        {/* VS badge */}
-        <motion.div
-          className="flex flex-col items-center"
-          animate={{ scale: [1, 1.08, 1] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center font-black text-white text-sm shadow-md"
-            style={{ background: accent }}
-          >
-            VS
+          <span className="text-2xl">{KNIGHT}</span>
+          <div className="flex flex-col text-left">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Knight</span>
+            <span className="text-xs font-black text-slate-700">Hero</span>
           </div>
         </motion.div>
 
-        {/* Monster */}
-        <div className="flex flex-col items-center gap-1 relative">
+        {/* Center Streak / XP Indicator */}
+        <div className="flex items-center gap-1.5">
+          {comboStreak >= 2 ? (
+            <motion.div
+              className="bg-amber-400 text-amber-950 font-black text-xs px-3 py-1 rounded-full shadow-sm flex items-center gap-1"
+              initial={{ scale: 0 }}
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ repeat: Infinity, duration: 1.2 }}
+            >
+              <span>🔥</span>
+              <span>{comboStreak}× Combo!</span>
+            </motion.div>
+          ) : (
+            <span className="text-xs font-black text-slate-600 bg-white/70 px-3 py-1 rounded-full">
+              Round {roundIndex + 1}
+            </span>
+          )}
+        </div>
+
+        {/* Monster Badge */}
+        <motion.div
+          className="flex items-center gap-2 bg-white/90 backdrop-blur-xs px-3 py-1.5 rounded-2xl border-2 border-white shadow-sm"
+          animate={
+            phase === 'correct'
+              ? { x: [0, 8, -6, 0], opacity: [1, 0.7, 1] }
+              : {}
+          }
+        >
+          <div className="flex flex-col text-right">
+            <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">Monster</span>
+            <span className="text-xs font-black text-rose-700">Boss</span>
+          </div>
           <AnimatePresence mode="wait">
             {!monsterDefeated ? (
-              <motion.div
+              <motion.span
                 key="monster-alive"
-                className="w-20 h-20 rounded-3xl flex items-center justify-center text-5xl shadow-lg border-4 border-white bg-rose-50"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.3, opacity: 0, rotate: 180 }}
-                transition={{ type: 'spring', damping: 12 }}
+                className="text-2xl"
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0, rotate: 180 }}
               >
                 {monster}
-              </motion.div>
+              </motion.span>
             ) : (
-              <motion.div
+              <motion.span
                 key="monster-defeated"
-                className="w-20 h-20 rounded-3xl flex items-center justify-center text-5xl"
+                className="text-2xl"
                 initial={{ scale: 1 }}
-                animate={{ scale: 0.3, opacity: 0, rotate: 180 }}
-                transition={{ duration: 0.5 }}
+                animate={{ scale: 0, opacity: 0 }}
               >
-                {monster}
-              </motion.div>
+                💥
+              </motion.span>
             )}
           </AnimatePresence>
-          <span className="text-xs font-black text-slate-600">Monster</span>
-
-          {/* XP Toast portal */}
-          <div className="relative">
-            <AnimatePresence>
-              {toastQueue.map((t) => (
-                <XpToast key={t.id} amount={t.amount} combo={t.combo} />
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* ── Equation Banner ───────────────────────────────────────────────── */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`q-${roundIndex}-${questionIndex}`}
-          className="w-full max-w-lg mb-6"
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          transition={{ type: 'spring', damping: 18, stiffness: 280 }}
-        >
-          <div
-            className="relative rounded-3xl border-4 border-white shadow-xl px-8 py-6 text-center"
-            style={{ background: `${accent}18`, borderColor: `${accent}44` }}
+      {/* ── Big Cartoon Cloud Thought Bubble ──────────────────────────────── */}
+      <GamePromptCloud>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`q-${roundIndex}-${questionIndex}`}
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.85 }}
+            transition={{ type: 'spring', damping: 15 }}
+            className="flex flex-col items-center justify-center py-1"
           >
-            {/* Scroll decorations */}
-            <div
-              className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-10 rounded-full border-2"
-              style={{ background: `${accent}33`, borderColor: `${accent}55` }}
-            />
-            <div
-              className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-10 rounded-full border-2"
-              style={{ background: `${accent}33`, borderColor: `${accent}55` }}
-            />
-
-            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: accent }}>
-              Solve the equation!
-            </p>
-            <motion.p
-              className="text-4xl sm:text-5xl font-black text-slate-800"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', damping: 12 }}
-            >
+            <p className="text-3xl sm:text-5xl font-black text-slate-800 tracking-tight select-none">
               {question.question}
-            </motion.p>
+            </p>
+          </motion.div>
+        </AnimatePresence>
+      </GamePromptCloud>
 
-            {/* Combo indicator */}
-            {comboStreak >= 2 && (
-              <motion.div
-                className="inline-flex items-center gap-1 mt-3 bg-orange-100 text-orange-600 font-black text-xs px-3 py-1 rounded-full"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', damping: 10 }}
-              >
-                🔥 {comboStreak}× Combo — {Math.min(3, comboStreak)}× XP!
-              </motion.div>
-            )}
-          </div>
-        </motion.div>
-      </AnimatePresence>
+      {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
+      <GameMascotHill speech="Choose the right answer!" />
 
-      {/* ── Answer Choices ────────────────────────────────────────────────── */}
-      <div className="w-full max-w-lg grid grid-cols-2 gap-3 mb-6">
+      {/* ── 3D Pill Answer Buttons (Meadow Stage) ─────────────────────────── */}
+      <div className="w-full max-w-md grid grid-cols-2 gap-3 sm:gap-4 my-2 z-20">
         {question.options.map((option, i) => {
-          const isSelected = selectedOption === option
           const isCorrectChoice = option === question.answer
           const isWrong = wrongOption === option
 
-          let btnStyle = 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:scale-[1.02] active:scale-95'
-
+          let status: 'idle' | 'correct' | 'wrong' = 'idle'
           if (phase !== 'idle') {
             if (isCorrectChoice && phase === 'correct') {
-              btnStyle = 'bg-emerald-50 border-emerald-400 text-emerald-700 scale-105'
+              status = 'correct'
             } else if (isWrong) {
-              btnStyle = 'bg-rose-50 border-rose-400 text-rose-700'
-            } else {
-              btnStyle = 'bg-white border-slate-200 text-slate-400 opacity-50 cursor-not-allowed'
+              status = 'wrong'
             }
           }
 
           return (
-            <motion.button
+            <GameOptionButton
               key={`${roundIndex}-${questionIndex}-${i}`}
-              type="button"
               onClick={() => handleAnswer(option)}
               disabled={phase !== 'idle'}
-              className={`relative flex items-center justify-center rounded-2xl border-2 border-b-4 py-4 px-4 font-black text-2xl sm:text-3xl transition-all cursor-pointer select-none ${btnStyle}`}
-              initial={{ opacity: 0, y: 15 }}
-              animate={
-                isWrong
-                  ? { x: [-8, 8, -6, 6, -4, 4, 0], opacity: 1, y: 0 }
-                  : { opacity: 1, y: 0, x: 0 }
-              }
-              transition={
-                isWrong
-                  ? { duration: 0.5 }
-                  : { delay: i * 0.07, type: 'spring', damping: 18 }
-              }
-              whileTap={phase === 'idle' ? { scale: 0.93 } : {}}
+              status={status}
             >
               {option}
-              {/* Correct tick overlay */}
-              {isCorrectChoice && phase === 'correct' && (
-                <motion.span
-                  className="absolute top-1 right-2 text-emerald-500 text-sm font-black"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', damping: 10 }}
-                >
-                  ✓
-                </motion.span>
-              )}
-              {/* Wrong X overlay */}
-              {isWrong && (
-                <motion.span
-                  className="absolute top-1 right-2 text-rose-500 text-sm font-black"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', damping: 10 }}
-                >
-                  ✗
-                </motion.span>
-              )}
-            </motion.button>
+            </GameOptionButton>
           )
         })}
       </div>
 
       {/* ── Feedback Banner ───────────────────────────────────────────────── */}
-      <div className="w-full max-w-lg h-10 flex items-center justify-center">
+      <div className="w-full max-w-md h-9 flex items-center justify-center z-20 mt-1">
         <AnimatePresence mode="wait">
           {phase === 'correct' && (
             <motion.div
               key="correct-feedback"
-              className="flex items-center gap-2 bg-emerald-100 text-emerald-700 font-black text-sm px-5 py-2 rounded-2xl"
+              className="flex items-center gap-2 bg-emerald-500 text-white font-black text-sm px-5 py-1.5 rounded-full shadow-md"
               initial={{ opacity: 0, scale: 0.7 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.7 }}
-              transition={{ type: 'spring', damping: 12 }}
+              transition={{ type: 'spring', damping: 14 }}
             >
-              <span className="text-lg">✅</span> Correct! Great job!
+              <span>🎉</span> Awesome job!
             </motion.div>
           )}
           {phase === 'wrong' && (
             <motion.div
               key="wrong-feedback"
-              className="flex items-center gap-2 bg-rose-100 text-rose-700 font-black text-sm px-5 py-2 rounded-2xl"
+              className="flex items-center gap-2 bg-rose-500 text-white font-black text-sm px-5 py-1.5 rounded-full shadow-md"
               initial={{ opacity: 0, scale: 0.7 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.7 }}
-              transition={{ type: 'spring', damping: 12 }}
+              transition={{ type: 'spring', damping: 14 }}
             >
-              <span className="text-lg">❌</span> Not quite — the answer was{' '}
-              <span className="underline underline-offset-2">{question.answer}</span>
+              <span>💥</span> Almost! Answer was {question.answer}
             </motion.div>
           )}
         </AnimatePresence>

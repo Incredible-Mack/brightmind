@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Volume2 } from 'lucide-react'
-import { GameShell, RoundResult, burstConfetti, playGameSound } from '@/components/games/GameShell'
+import { GameShell, RoundResult, burstConfetti, playGameSound, GamePromptCloud, GameMascotHill, speakGameText } from '@/components/games/GameShell'
 import { useAppStore } from '@/store/useAppStore'
 import { getAgeGroup } from '@/lib/curriculum.data'
 import type { AgeGroup } from '@/types/child'
@@ -393,8 +393,10 @@ export default function BalloonPopPage() {
     <GameShell
       title="Balloon Pop"
       emoji="🎈"
-      accentColor="#a855f7"
-      bgColor="linear-gradient(160deg, #e0f2fe 0%, #fdf4ff 50%, #fef9c3 100%)"
+      accentColor="#0284c7"
+      progress={currentQ + 1}
+      totalProgress={QUESTIONS_PER_ROUND}
+      onSpeak={() => speak(`${question.prompt} ${question.target}`)}
     >
       {/* ── Wrong-answer flash overlay ── */}
       <AnimatePresence>
@@ -414,7 +416,7 @@ export default function BalloonPopPage() {
       <AnimatePresence>
         {showXPToast && (
           <motion.div
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-amber-400 text-amber-900 font-black text-lg px-6 py-2 rounded-full shadow-lg pointer-events-none"
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-amber-400 text-amber-950 font-black text-lg px-6 py-2 rounded-full shadow-lg pointer-events-none border-2 border-white"
             initial={{ opacity: 0, y: -10, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
@@ -424,45 +426,40 @@ export default function BalloonPopPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Prompt Box ── */}
-      <div className="w-full max-w-lg mx-auto mb-4">
+      {/* ── Cartoon Cloud Thought Bubble ─────────────────────────────────── */}
+      <GamePromptCloud>
         <motion.div
           key={question.target}
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', damping: 18 }}
-          className="bg-white/90 backdrop-blur rounded-3xl shadow-lg border-2 border-purple-200 px-6 py-4 text-center"
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 16 }}
+          className="flex flex-col items-center justify-center py-1"
         >
-          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mb-1">
-            Question {currentQ + 1} / {QUESTIONS_PER_ROUND} · {difficultyLabel[ageGroup]}
+          <p className="text-slate-500 font-bold text-[11px] uppercase tracking-widest mb-1">
+            {difficultyLabel[ageGroup]} · Question {currentQ + 1} of {QUESTIONS_PER_ROUND}
           </p>
-          <p className="text-slate-800 font-black text-xl leading-tight">
-            {question.prompt}{' '}
-            <span className="inline-block bg-purple-100 text-purple-700 rounded-xl px-3 py-0.5 text-2xl font-black border-2 border-purple-300">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xl sm:text-2xl font-black text-slate-800">
+              {question.prompt}
+            </span>
+            <span className="inline-block bg-[#fef08a] border-2 border-amber-300 text-amber-900 rounded-2xl px-4 py-0.5 text-2xl sm:text-3xl font-black shadow-sm">
               {question.target}
             </span>
-          </p>
+          </div>
         </motion.div>
-      </div>
+      </GamePromptCloud>
 
-      {/* ── Progress bar ── */}
-      <div className="w-full max-w-lg mx-auto mb-2 h-2 bg-purple-100 rounded-full overflow-hidden">
-        <motion.div
-          className="h-full bg-purple-500 rounded-full"
-          animate={{ width: `${(currentQ / QUESTIONS_PER_ROUND) * 100}%` }}
-          transition={{ duration: 0.4 }}
-        />
-      </div>
+      {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
+      <GameMascotHill speech="Pop the right balloon! 🎈" />
 
-      {/* ── Balloon Stage ── */}
+      {/* ── Balloon Floating Meadow Sky Stage ─────────────────────────────── */}
       <div
-        className="relative w-full max-w-lg mx-auto overflow-hidden rounded-3xl bg-gradient-to-b from-sky-100/60 to-purple-50/60 border-2 border-white/80 shadow-inner"
-        style={{ height: 380 }}
+        className="relative w-full max-w-md mx-auto overflow-hidden rounded-3xl bg-gradient-to-b from-sky-300/30 via-white/40 to-emerald-200/40 border-2 border-white/80 shadow-md my-2 z-20"
+        style={{ height: 350 }}
       >
-        {/* Decorative clouds */}
-        <div className="absolute top-4 left-6 w-20 h-8 rounded-full bg-white/70 blur-sm pointer-events-none" />
-        <div className="absolute top-8 right-10 w-14 h-6 rounded-full bg-white/60 blur-sm pointer-events-none" />
-        <div className="absolute top-2 right-24 w-10 h-5 rounded-full bg-white/50 blur-sm pointer-events-none" />
+        {/* Soft background cloud doodles */}
+        <div className="absolute top-4 left-6 w-16 h-7 rounded-full bg-white/60 blur-xs pointer-events-none" />
+        <div className="absolute top-10 right-8 w-20 h-8 rounded-full bg-white/50 blur-xs pointer-events-none" />
 
         <AnimatePresence>
           {balloons.map(balloon => (
@@ -472,11 +469,10 @@ export default function BalloonPopPage() {
               style={{
                 left: `${balloon.x}%`,
                 transform: 'translateX(-50%)',
-                width: 80,
-                height: 120,
+                width: 78,
+                height: 118,
                 bottom: 0,
               }}
-              // Float upward
               initial={{ y: '100%', opacity: 1 }}
               animate={
                 balloon.popped
@@ -500,8 +496,8 @@ export default function BalloonPopPage() {
                     }
               }
               onClick={e => handlePop(balloon, e)}
-              whileHover={balloon.popped ? {} : { scale: 1.08 }}
-              whileTap={balloon.popped ? {} : { scale: 0.94 }}
+              whileHover={balloon.popped ? {} : { scale: 1.1 }}
+              whileTap={balloon.popped ? {} : { scale: 0.92 }}
               role="button"
               aria-label={`Balloon with ${balloon.label}`}
             >
@@ -511,17 +507,17 @@ export default function BalloonPopPage() {
         </AnimatePresence>
       </div>
 
-      {/* ── Hear Again Button ── */}
-      <div className="mt-5 flex justify-center">
+      {/* ── Tactile 3D Hear Again Button ──────────────────────────────────── */}
+      <div className="mt-2 flex justify-center z-20">
         <motion.button
           type="button"
           onClick={handleHearAgain}
           whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.96 }}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border-2 border-purple-300 border-b-4 border-b-purple-400 text-purple-700 font-black text-sm shadow-sm hover:bg-purple-50 transition-colors cursor-pointer"
+          whileTap={{ scale: 0.95 }}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border-2 border-white border-b-4 border-b-slate-200 text-[#0284c7] font-black text-sm shadow-md hover:bg-sky-50 transition-colors cursor-pointer active:translate-y-0.5"
         >
-          <Volume2 size={16} className="text-purple-500" />
-          Hear it again 🔊
+          <Volume2 size={18} className="text-[#0284c7]" />
+          <span>Hear question again 🔊</span>
         </motion.button>
       </div>
 

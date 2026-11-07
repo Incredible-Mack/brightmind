@@ -40,14 +40,15 @@ const GAMES = [
   {
     id: 'math-quest',
     title: 'Math Quest',
-    emoji: '🧮',
+    emoji: '⚔️',
     description: 'Battle monsters by solving maths equations. Level up with combo streaks!',
     badge: 'Adventure',
     badgeColor: 'text-blue-700 bg-blue-100',
     cardBg: 'from-[#dbeafe] to-[#bfdbfe]',
     borderColor: 'border-blue-300 border-b-blue-500',
-    playColor: 'bg-blue-500 hover:bg-blue-600',
+    playColor: 'bg-[#0284c7] hover:bg-[#0369a1]',
     href: '/games/math-quest',
+    thumbnail: '/images/game-math-quest.jpg',
     xpPerRound: 100,
     ages: 'All Ages',
   },
@@ -60,8 +61,9 @@ const GAMES = [
     badgeColor: 'text-emerald-700 bg-emerald-100',
     cardBg: 'from-[#dcfce7] to-[#bbf7d0]',
     borderColor: 'border-emerald-300 border-b-emerald-500',
-    playColor: 'bg-emerald-500 hover:bg-emerald-600',
+    playColor: 'bg-[#22c55e] hover:bg-[#16a34a]',
     href: '/games/balloon-pop',
+    thumbnail: '/images/game-balloon-pop.jpg',
     xpPerRound: 80,
     ages: 'Ages 0–8',
   },
@@ -74,8 +76,9 @@ const GAMES = [
     badgeColor: 'text-orange-700 bg-orange-100',
     cardBg: 'from-[#ffedd5] to-[#fed7aa]',
     borderColor: 'border-orange-300 border-b-orange-500',
-    playColor: 'bg-orange-500 hover:bg-orange-600',
+    playColor: 'bg-[#ea580c] hover:bg-[#c2410c]',
     href: '/games/puzzle-quest',
+    thumbnail: '/images/game-puzzle-quest.jpg',
     xpPerRound: 90,
     ages: 'All Ages',
   },
@@ -88,7 +91,7 @@ const GAMES = [
     badgeColor: 'text-purple-700 bg-purple-100',
     cardBg: 'from-[#f3e8ff] to-[#e9d5ff]',
     borderColor: 'border-purple-300 border-b-purple-500',
-    playColor: 'bg-purple-500 hover:bg-purple-600',
+    playColor: 'bg-[#9333ea] hover:bg-[#7e22ce]',
     href: '/games/science-lab',
     xpPerRound: 100,
     ages: 'All Ages',
@@ -96,13 +99,13 @@ const GAMES = [
   {
     id: 'memory-match',
     title: 'Memory Match',
-    emoji: '🃏',
+    emoji: '🧠',
     description: 'Flip cards and find matching pairs. Train your memory and earn XP!',
     badge: 'Memory',
     badgeColor: 'text-pink-700 bg-pink-100',
     cardBg: 'from-[#fce7f3] to-[#fbcfe8]',
     borderColor: 'border-pink-300 border-b-pink-500',
-    playColor: 'bg-pink-500 hover:bg-pink-600',
+    playColor: 'bg-[#db2777] hover:bg-[#be185d]',
     href: '/games/memory-match',
     xpPerRound: 120,
     ages: 'All Ages',
@@ -194,9 +197,20 @@ export default function GamesPage() {
                 onClick={() => playSound('chime')}
                 className={`block bg-gradient-to-b ${game.cardBg} rounded-3xl border-2 ${game.borderColor} border-b-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group overflow-hidden`}
               >
-                {/* Card Top — Emoji Artwork */}
-                <div className="flex items-center justify-center h-32 text-6xl">
-                  {game.emoji}
+                {/* Card Top — Artwork or Emoji */}
+                <div className="relative flex items-center justify-center h-36 overflow-hidden">
+                  {game.thumbnail ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={game.thumbnail}
+                      alt={game.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <span className="text-6xl select-none group-hover:scale-110 transition-transform">
+                      {game.emoji}
+                    </span>
+                  )}
                 </div>
 
                 {/* Card Body */}

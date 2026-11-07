@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GameShell, RoundResult, burstConfetti, playGameSound } from '@/components/games/GameShell'
+import { GameShell, RoundResult, burstConfetti, playGameSound, GamePromptCloud, GameMascotHill, speakGameText } from '@/components/games/GameShell'
 import { useAppStore } from '@/store/useAppStore'
 import { getAgeGroup } from '@/lib/curriculum.data'
 import type { AgeGroup } from '@/types/child'
@@ -249,18 +249,18 @@ interface OptionChipProps {
 function OptionChip({ label, selected, isCorrect, revealed, disabled, onClick }: OptionChipProps) {
   const swatch = LABEL_TO_HEX[label] ?? '#94a3b8'
 
-  let borderClass = 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/70 text-slate-800'
+  let buttonStyle = 'bg-white border-2 border-white border-b-[5px] border-b-slate-200 text-slate-800 shadow-md hover:bg-sky-50/50'
 
   if (revealed) {
     if (isCorrect === true) {
-      borderClass = 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-400 shadow-sm'
+      buttonStyle = 'bg-[#22c55e] border-2 border-emerald-300 border-b-[5px] border-b-[#15803d] text-white shadow-emerald-500/30 scale-[1.02]'
     } else if (selected && isCorrect === false) {
-      borderClass = 'border-rose-400 bg-rose-50 text-rose-900 line-through opacity-80'
+      buttonStyle = 'bg-rose-100 border-2 border-rose-300 border-b-[5px] border-b-rose-400 text-rose-800 line-through opacity-80'
     } else {
-      borderClass = 'border-slate-200 bg-slate-50/80 text-slate-400'
+      buttonStyle = 'bg-white/80 border-2 border-slate-200 border-b-[4px] border-b-slate-300 text-slate-400 opacity-60'
     }
   } else if (selected) {
-    borderClass = 'border-indigo-500 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-400 shadow-md scale-[1.02]'
+    buttonStyle = 'bg-amber-100 border-2 border-amber-300 border-b-[5px] border-b-amber-500 text-amber-950 ring-4 ring-amber-300 shadow-md scale-[1.02]'
   }
 
   return (
@@ -269,8 +269,8 @@ function OptionChip({ label, selected, isCorrect, revealed, disabled, onClick }:
       onClick={onClick}
       disabled={disabled}
       whileHover={disabled ? {} : { scale: 1.02 }}
-      whileTap={disabled ? {} : { scale: 0.98 }}
-      className={`flex items-center gap-3 w-full px-4 py-3 rounded-2xl border-2 border-b-4 font-black text-sm text-left transition-all ${borderClass} cursor-pointer disabled:cursor-not-allowed`}
+      whileTap={disabled ? {} : { scale: 0.97 }}
+      className={`flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl font-black text-sm text-left transition-all cursor-pointer disabled:cursor-not-allowed select-none ${buttonStyle}`}
     >
       <span
         className="w-6 h-6 rounded-full flex-shrink-0 border-2 border-white shadow-xs"
@@ -278,15 +278,15 @@ function OptionChip({ label, selected, isCorrect, revealed, disabled, onClick }:
       />
       <span className="flex-1 font-nunito">{label}</span>
       {selected && !revealed && (
-        <span className="text-xs font-black uppercase text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-black uppercase text-amber-900 bg-amber-200 px-2 py-0.5 rounded-full">
           Chosen
         </span>
       )}
       {revealed && isCorrect === true && (
-        <span className="text-emerald-600 text-lg font-black">✓ Correct</span>
+        <span className="text-white text-base font-black">✓ Correct</span>
       )}
       {revealed && selected && isCorrect === false && (
-        <span className="text-rose-500 text-base font-black">✗</span>
+        <span className="text-rose-600 text-base font-black">✗</span>
       )}
     </motion.button>
   )
@@ -433,8 +433,14 @@ export default function ScienceLabPage() {
     <GameShell
       title="Science Lab"
       emoji="🧪"
-      accentColor="#6366f1"
-      bgColor="#eef2ff"
+      accentColor="#0284c7"
+      progress={qIndex + 1}
+      totalProgress={QUESTIONS_PER_ROUND}
+      onSpeak={() =>
+        speakGameText(
+          `What colour do we get when we mix ${experiment.a.split(' ')[0]} and ${experiment.b.split(' ')[0]}?`
+        )
+      }
     >
       {/* CSS bubble animation */}
       <style>{`
@@ -445,209 +451,183 @@ export default function ScienceLabPage() {
         }
       `}</style>
 
-      <div className="w-full max-w-lg flex flex-col gap-4 font-nunito">
-        {/* ── Round Progress Indicator ── */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex gap-1.5 items-center">
-            {Array.from({ length: QUESTIONS_PER_ROUND }).map((_, i) => (
-              <div
-                key={i}
-                className={`h-2.5 rounded-full transition-all duration-300 ${
-                  i < qIndex
-                    ? 'bg-indigo-500 w-5'
-                    : i === qIndex
-                    ? 'bg-indigo-400 w-6 ring-2 ring-indigo-300'
-                    : 'bg-slate-200 w-3'
-                }`}
-              />
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            {isAdvanced && step === 'predict' && (
-              <span className="text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">
-                ⏱️ {timeLeft}s
-              </span>
-            )}
-            <span className="text-xs font-black text-slate-500">
-              Experiment {qIndex + 1} of {QUESTIONS_PER_ROUND}
-            </span>
-          </div>
-        </div>
-
-        {/* ── Main Experiment Table Panel ── */}
-        <div className="bg-white rounded-3xl border-2 border-indigo-100 shadow-sm p-5 sm:p-6 relative overflow-hidden">
-          <div className="text-center mb-3">
-            <span className="text-[11px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
-              ⚗️ Color Chemistry Lab
-            </span>
-            <h3 className="text-base sm:text-lg font-black text-slate-800 mt-2">
-              What colour do we get when we mix{' '}
-              <span className="text-indigo-600 underline decoration-indigo-200">{experiment.a}</span> and{' '}
-              <span className="text-indigo-600 underline decoration-indigo-200">{experiment.b}</span>?
-            </h3>
-          </div>
-
-          {/* ── Flasks Bench ── */}
-          <div className="flex items-end justify-center gap-3 sm:gap-6 my-4 min-h-[140px] relative">
-            {/* Left Flask A */}
-            <Flask
-              color={experiment.colorA}
-              size={78}
-              label={experiment.a}
-              fillAmount={step === 'mixing' ? 0.3 : 1}
-              tilt={step === 'mixing' ? 38 : 0}
-            />
-
-            {/* Center Reaction Chamber / Beaker */}
-            <div className="flex flex-col items-center justify-end relative">
-              {/* Mixing Flow Particles */}
-              {step === 'mixing' && (
-                <div className="absolute -top-3 inset-x-0 flex justify-between pointer-events-none px-2 z-10">
-                  <motion.div
-                    animate={{ y: [0, 45], opacity: [0.9, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.35 }}
-                    className="w-2.5 h-6 rounded-full"
-                    style={{ background: experiment.colorA }}
-                  />
-                  <motion.div
-                    animate={{ y: [0, 45], opacity: [0.9, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.35, delay: 0.1 }}
-                    className="w-2.5 h-6 rounded-full"
-                    style={{ background: experiment.colorB }}
-                  />
-                </div>
-              )}
-
-              {/* The Resulting Beaker */}
-              <Flask
-                color={
-                  step === 'revealed'
-                    ? experiment.colorResult
-                    : '#cbd5e1'
-                }
-                size={98}
-                label={
-                  step === 'revealed'
-                    ? experiment.result
-                    : step === 'mixing'
-                    ? 'Reacting! 💥'
-                    : 'Reaction Flask'
-                }
-                fillAmount={step === 'predict' ? 0 : 1}
-                bubbling={step === 'mixing' || step === 'revealed'}
-                isMystery={step === 'predict'}
-              />
-            </div>
-
-            {/* Right Flask B */}
-            <Flask
-              color={experiment.colorB}
-              size={78}
-              label={experiment.b}
-              fillAmount={step === 'mixing' ? 0.3 : 1}
-              tilt={step === 'mixing' ? -38 : 0}
-            />
-          </div>
-
-          {/* ── Mix Action Button (in predict stage) ── */}
-          {step === 'predict' && (
-            <div className="flex flex-col items-center gap-2 mt-4">
-              <motion.button
-                type="button"
-                onClick={() => handleExecuteMix(false)}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="w-full sm:w-auto px-8 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 text-white font-black text-sm sm:text-base border-2 border-indigo-400 border-b-4 border-b-indigo-800 shadow-md cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>POUR &amp; MIX! ⚗️</span>
-              </motion.button>
-              {selectionWarning && (
-                <motion.p
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xs font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200"
-                >
-                  👇 Pick your prediction below first!
-                </motion.p>
-              )}
-            </div>
-          )}
-
-          {/* ── Mixing Status Banner ── */}
-          {step === 'mixing' && (
-            <div className="text-center py-2 flex items-center justify-center gap-2 text-indigo-700 font-black text-sm">
-              <span className="text-2xl anim-spin-slow">🧪</span>
-              <span>Mixing liquids in the beaker... Watch the reaction!</span>
-            </div>
-          )}
-
-          {/* ── Result Feedback Banner (in revealed stage) ── */}
-          {step === 'revealed' && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`mt-3 p-3.5 rounded-2xl border-2 text-center ${
-                isGuessedCorrect
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                  : 'bg-amber-50 border-amber-300 text-amber-950'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2 font-black text-sm sm:text-base mb-1">
-                <span className="text-xl">{isGuessedCorrect ? '🎉' : '🧪'}</span>
-                <span>
-                  {isGuessedCorrect
-                    ? `Brilliant! ${experiment.a} + ${experiment.b} = ${experiment.result}!`
-                    : `Reaction complete! ${experiment.a} + ${experiment.b} makes ${experiment.result}!`}
-                </span>
-              </div>
-              <p className="text-xs font-bold text-slate-700 mt-1">
-                💡 <span className="font-extrabold text-slate-900">Fun Fact:</span> {experiment.fact}
-              </p>
-            </motion.div>
-          )}
-        </div>
-
-        {/* ── Option Chips (Prediction Choices) ── */}
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-black uppercase text-slate-500 tracking-wider px-1">
-            {step === 'revealed' ? 'Options & Results:' : 'Choose your prediction:'}
+      {/* ── Cartoon Cloud Thought Bubble ─────────────────────────────────── */}
+      <GamePromptCloud>
+        <div className="flex flex-col items-center justify-center py-1">
+          <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-1">
+            🧪 Color Chemistry Experiment
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {experiment.shuffledOptions.map((opt, i) => (
-              <OptionChip
-                key={opt}
-                label={opt}
-                selected={selectedOption === i}
-                isCorrect={
-                  step === 'revealed'
-                    ? i === experiment.correctIndex
-                    : null
-                }
-                revealed={step === 'revealed'}
-                disabled={step !== 'predict'}
-                onClick={() => handleSelectOption(i)}
-              />
-            ))}
+          <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight select-none">
+            {experiment.a} + {experiment.b} = ❓
+          </h2>
+        </div>
+      </GamePromptCloud>
+
+      {/* ── Mascot Pip Over Grassy Hill ───────────────────────────────────── */}
+      <GameMascotHill speech="Predict the reaction!" />
+
+      {/* ── Main Experiment Bench (Meadow Stage) ─────────────────────────── */}
+      <div className="w-full max-w-md bg-white/95 backdrop-blur-xs rounded-3xl border-2 border-white shadow-lg p-4 sm:p-5 flex flex-col gap-3 my-2 z-20">
+        {/* Flasks Bench */}
+        <div className="flex items-end justify-center gap-3 sm:gap-6 my-2 min-h-[130px] relative">
+          {/* Left Flask A */}
+          <Flask
+            color={experiment.colorA}
+            size={72}
+            label={experiment.a}
+            fillAmount={step === 'mixing' ? 0.3 : 1}
+            tilt={step === 'mixing' ? 38 : 0}
+          />
+
+          {/* Center Reaction Chamber / Beaker */}
+          <div className="flex flex-col items-center justify-end relative">
+            {/* Mixing Flow Particles */}
+            {step === 'mixing' && (
+              <div className="absolute -top-3 inset-x-0 flex justify-between pointer-events-none px-2 z-10">
+                <motion.div
+                  animate={{ y: [0, 45], opacity: [0.9, 0] }}
+                  transition={{ repeat: Infinity, duration: 0.35 }}
+                  className="w-2.5 h-6 rounded-full"
+                  style={{ background: experiment.colorA }}
+                />
+                <motion.div
+                  animate={{ y: [0, 45], opacity: [0.9, 0] }}
+                  transition={{ repeat: Infinity, duration: 0.35, delay: 0.1 }}
+                  className="w-2.5 h-6 rounded-full"
+                  style={{ background: experiment.colorB }}
+                />
+              </div>
+            )}
+
+            {/* The Resulting Beaker */}
+            <Flask
+              color={
+                step === 'revealed'
+                  ? experiment.colorResult
+                  : '#cbd5e1'
+              }
+              size={92}
+              label={
+                step === 'revealed'
+                  ? experiment.result
+                  : step === 'mixing'
+                  ? 'Reacting! 💥'
+                  : 'Reaction Flask'
+              }
+              fillAmount={step === 'predict' ? 0 : 1}
+              bubbling={step === 'mixing' || step === 'revealed'}
+              isMystery={step === 'predict'}
+            />
           </div>
+
+          {/* Right Flask B */}
+          <Flask
+            color={experiment.colorB}
+            size={72}
+            label={experiment.b}
+            fillAmount={step === 'mixing' ? 0.3 : 1}
+            tilt={step === 'mixing' ? -38 : 0}
+          />
         </div>
 
-        {/* ── Next Button (After Reveal) ── */}
+        {/* Mix Action Button (in predict stage) */}
+        {step === 'predict' && (
+          <div className="flex flex-col items-center gap-2 mt-1">
+            <motion.button
+              type="button"
+              onClick={() => handleExecuteMix(false)}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-black text-sm sm:text-base border-2 border-amber-300 border-b-[5px] border-b-amber-700 shadow-md cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5"
+            >
+              <span>POUR &amp; MIX! ⚗️</span>
+            </motion.button>
+            {selectionWarning && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-xs font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200"
+              >
+                👇 Tap your prediction below first!
+              </motion.p>
+            )}
+          </div>
+        )}
+
+        {/* Mixing Status Banner */}
+        {step === 'mixing' && (
+          <div className="text-center py-1 flex items-center justify-center gap-2 text-[#0284c7] font-black text-sm">
+            <span className="text-xl animate-spin">🧪</span>
+            <span>Mixing liquids in the beaker... Watch the reaction!</span>
+          </div>
+        )}
+
+        {/* Result Feedback Banner */}
         {step === 'revealed' && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex justify-end pt-1"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-3 rounded-2xl border-2 text-center ${
+              isGuessedCorrect
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                : 'bg-amber-50 border-amber-300 text-amber-950'
+            }`}
           >
-            <button
-              type="button"
-              onClick={handleNextQuestion}
-              className="w-full sm:w-auto px-7 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm border-2 border-emerald-400 border-b-4 border-b-emerald-700 shadow-md cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5 transition-all"
-            >
-              <span>{qIndex + 1 === QUESTIONS_PER_ROUND ? 'Finish Lab 🏆' : 'Next Experiment ➡️'}</span>
-            </button>
+            <div className="flex items-center justify-center gap-2 font-black text-sm mb-1">
+              <span className="text-lg">{isGuessedCorrect ? '🎉' : '🧪'}</span>
+              <span>
+                {isGuessedCorrect
+                  ? `Brilliant! ${experiment.a} + ${experiment.b} = ${experiment.result}!`
+                  : `Reaction complete! ${experiment.a} + ${experiment.b} makes ${experiment.result}!`}
+              </span>
+            </div>
+            <p className="text-xs font-bold text-slate-700">
+              💡 <span className="font-extrabold text-slate-900">Fun Fact:</span> {experiment.fact}
+            </p>
           </motion.div>
         )}
       </div>
+
+      {/* ── Option Chips (Prediction Choices) ─────────────────────────────── */}
+      <div className="w-full max-w-md flex flex-col gap-2 my-1 z-20">
+        <p className="text-xs font-black uppercase text-slate-600 tracking-wider px-1">
+          {step === 'revealed' ? 'Results:' : 'Choose your prediction:'}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {experiment.shuffledOptions.map((opt, i) => (
+            <OptionChip
+              key={opt}
+              label={opt}
+              selected={selectedOption === i}
+              isCorrect={
+                step === 'revealed'
+                  ? i === experiment.correctIndex
+                  : null
+              }
+              revealed={step === 'revealed'}
+              disabled={step !== 'predict'}
+              onClick={() => handleSelectOption(i)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Next Button (After Reveal) ────────────────────────────────────── */}
+      {step === 'revealed' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md flex justify-end pt-2 z-20"
+        >
+          <button
+            type="button"
+            onClick={handleNextQuestion}
+            className="w-full py-3.5 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-white font-black text-sm sm:text-base border-2 border-emerald-400 border-b-[5px] border-b-[#15803d] shadow-md cursor-pointer flex items-center justify-center gap-2 active:translate-y-0.5 transition-all"
+          >
+            <span>{qIndex + 1 === QUESTIONS_PER_ROUND ? 'Finish Lab 🏆' : 'Next Experiment ➡️'}</span>
+          </button>
+        </motion.div>
+      )}
 
       {/* ── Round Result Modal ── */}
       <RoundResult
